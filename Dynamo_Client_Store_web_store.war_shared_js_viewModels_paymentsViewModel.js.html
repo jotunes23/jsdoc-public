@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: Dynamo/Client/Store/web/store.war/shared/js/viewModels/paymentsViewModel.js</title>
+    
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+    
+    <h1 class="page-title">Source: Dynamo/Client/Store/web/store.war/shared/js/viewModels/paymentsViewModel.js</h1>
+    
+    
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source"><code>/***
+ * This view model can be used to hold the payments data and contains methods to invoke the add payments API.
+ * This is a singleton object and can be accessed by using the getInstance method 
+ **/
+define(
+  //-------------------------------------------------------------------
+  // PACKAGE NAME
+  //-------------------------------------------------------------------
+  'viewModels/paymentsViewModel',
+  
+  //-------------------------------------------------------------------
+  // DEPENDENCIES
+  //-------------------------------------------------------------------
+  ['knockout', 'pubsub', 'ccConstants', 'ccRestClient', 'CCi18n', 'pageLayout/site', 'viewModels/cash', 'viewModels/creditCard', 
+   'viewModels/giftCard', 'viewModels/invoice', 'viewModels/paypal', 'viewModels/payu', 'viewModels/loyalty', 'viewModels/storeCredit',
+   'navigation', 'pageLayout/order', 'ccStoreConfiguration', 'viewModels/inStorePayment', 'notifier'],
+  
+  //-------------------------------------------------------------------
+  // MODULE DEFINITION
+  //-------------------------------------------------------------------
+  function (ko, pubsub, CCConstants, ccRestClient, CCi18n, site, Cash, CreditCard, GiftCard, Invoice, Paypal, PayU, Loyalty, StoreCredit, navigation, order, StoreConfiguration, InStorePayment, notifier) {
+    'use strict';
+    var CART_EVENT_GIFTCARD_REAPPLY = 8;
+    var PAYMENTS_VIEW_MODEL_ID = "PaymentsViewModel";
+    function PaymentsViewModel() {
+      if(PaymentsViewModel.singleInstance) {
+        throw new Error("Cannot instantiate more than one PaymentsViewModel, use getInstance(data)");  
+      }
+      
+      var self = this;
+      
+      // Place holder to store the Authorized payment groups
+      self.completedPayments = ko.observableArray([]);
+      // Place holder to store the payment groups that are yet to be processed
+      self.pendingPayments = ko.observableArray([]);
+      // Place holder to store the failed payment groups
+      self.failedPayments = ko.observableArray([]);
+      // The Balance amount due
+      self.paymentDue = ko.observable();
+      self.loyaltyPaymentDue = ko.observable();
+
+      // Place holder to store the Authorized payments in case of historical orders
+      self.historicalCompletedPayments = ko.observableArray([]);
+      self.historicalCompletedLoyaltyPayments = ko.observableArray([]);
+      
+      // Cash Enabled Countries List
+      self.cashEnabledCountries = [];
+      // Scheduled Order Enabled Gateways
+      self.scheduleOrderEnabledGateways = [];
+      // Approval Enabled Gateways
+      self.approvalEnabledGateways = [];
+      // Is Generic Card Gateway
+      self.isCardGatewayGeneric = false;
+      self.paypalPaymentGroupId = ko.observable();
+      // Is loyaltyPoints payment type is enabled
+      self.isLoyaltyEnabled = ko.observable(false);
+      // reference to loyalty view model
+      //self.loyaltyViewModel = ko.observable(null);
+      //Is card payment enabled
+      self.isCardPaymentDisabled = ko.observable(false);
+      //Is paypal payment disabled
+      self.isPaypalDisabled      = ko.observable(false);
+      self.isPaypalVerified   = ko.observable(false);
+      // flag to display error msg when insufficient points
+      //self.userHasInsufficientPoints = ko.observable(false);
+
+      //Is store credit payment type is enabled
+      self.isStoreCreditEnabled = ko.observable(false);
+
+      //Is inStore payment enabled
+      self.isInStorePaymentEnabled = ko.observable(false);
+
+      //Is cash payment enabled
+      self.isCashPaymentEnabled = ko.observable(false);
+
+    //Is payu payment enabled
+      self.isPayuLPaymentEnabled = ko.observable(false);
+      //Is saved card allowed
+      self.isCVVRequiredForSavedCards = true;
+      self.allowSavingCards = false;
+
+      // Scheduled Order enable variables
+      self.isCardEnabledForScheduledOrder = ko.observable(false);
+      self.isGiftCardEnabledForScheduledOrder = ko.observable(false);
+      self.isInvoiceEnabledForScheduledOrder = ko.observable(false);
+      self.isCashEnabledForScheduledOrder = ko.observable(false);
+      self.isPayULEnabledForScheduledOrder = ko.observable(false);
+      self.isPaypalEnabledForScheduledOrder = ko.observable(false);
+      self.isLoyaltyEnabledForScheduledOrder = ko.observable(false);
+      self.isStoreCreditEnabledForScheduledOrder = ko.observable(false);
+      self.isInStorePaymentEnabledForScheduledOrder = ko.observable(false);
+      
+      // Order Approval enable Variables
+      self.isCardEnabledForApproval = ko.observable(false);
+      self.isGiftCardEnabledForApproval = ko.observable(false);
+      self.isInvoiceEnabledForApproval = ko.observable(false);
+      self.isCashEnabledForApproval = ko.observable(false);
+      self.isPayULEnabledForApproval = ko.observable(false);
+      self.isPaypalEnabledForApproval = ko.observable(false);
+      self.isLoyaltyEnabledForApproval = ko.observable(false);
+      self.isStoreCreditEnabledForApproval = ko.observable(false);
+      self.isInStorePaymentEnabledForApproval = ko.observable(false);
+
+      // Variables introduced to hold amount that is authorised in pending payments and order amendment(for agent)
+      self.totalAmountAuthorized = ko.observable(0);
+      self.totalAmountAuthorizedOnVoid = ko.observable(0);
+      self.partialPaymentOption = "";
+      self.toBeVoidedPayments = ko.observableArray([]);
+      self.amountRemaining = "";
+      self.primaryCurrencyAmountRemaining = "";
+      // in multi currency scenario, the loyalty payment authorized is saved here
+      self.primaryCurrencyTotalAmountAuthorized = ko.observable(0);
+
+
+      // Exclude fields map contains fields that are should be skipped 
+      // while mapping the response payment group to the request payment data
+      self.excludeFieldsMap = ['amount', 'cardNumber', 'cardType', 'giftCardNumber', 'seqNum', 'customPaymentProperties'];
+      
+      /**
+       * Method to set cashEnabledCountries from siteViewModel
+       */
+      self.setCashEnabledCountries = function() {
+        for(var key in site.getInstance().extensionSiteSettings) {
+          var settingsObject = site.getInstance().extensionSiteSettings[key];
+          if (settingsObject[CCConstants.PAYMENT_METHOD_TYPES] &amp;&amp;
+            settingsObject[CCConstants.PAYMENT_METHOD_TYPES].split(",").indexOf(CCConstants.CASH_PAYMENT_TYPE) != -1 ) {
+            if (settingsObject[CCConstants.SELECTED_COUNTRIES]) {
+              self.cashEnabledCountries = settingsObject[CCConstants.SELECTED_COUNTRIES];
+            }
+          }
+        }
+      };
+      
+      /**
+       * Method to set the payment related meta-data
+       * */
+      self.populatePaymentData = function(data, pUserData) {
+        self.cardTypeList = ko.observableArray(data.cards);
+        self.gateways = data.gateways;
+        self.payULatamCountryList = data.payULatamCountryList;
+        self.paymentMethods = ko.observableArray();
+        
+        //If it's a b2b user initialize with account specific payment methods
+        if (pUserData().isB2BUser()) {
+          var useAllPayment = pUserData().currentOrganization().derivedUseAllPaymentMethodsFromSite;
+          if (useAllPayment == undefined || !useAllPayment) {
+            var enabledTypesLength = data.enabledTypes.length;
+            var organizationPaymentMethods =
+              pUserData().currentOrganization().derivedPaymentMethods;
+            var organizationEnabledTypes = [];
+            for (var i=0; i&lt;enabledTypesLength; i++) {
+              for (var j=0; j &lt; organizationPaymentMethods.length; j++) {
+                if (data.enabledTypes[i] == organizationPaymentMethods[j]) {
+                  organizationEnabledTypes.push(data.enabledTypes[i]);
+                }
+              }
+            }
+            self.enabledTypes = organizationEnabledTypes;       	  
+          } else {
+            self.enabledTypes = data.enabledTypes;           
+          }
+        } else {
+          self.enabledTypes = data.enabledTypes;
+        }
+
+        if (self.enabledTypes &amp;&amp;
+            self.enabledTypes.indexOf(CCConstants.CARD_PAYMENT_TYPE) &lt; 0) {
+          self.isCardPaymentDisabled(true);
+        }
+
+        if (self.enabledTypes &amp;&amp;
+            self.enabledTypes.indexOf(CCConstants.PAYPAL_PAYMENT_TYPE) &lt; 0) {
+          self.isPaypalDisabled(true);
+        } else {
+          self.isPaypalDisabled(false);	
+        }
+
+        //Is store credit payment type enabled
+        if (self.enabledTypes &amp;&amp;
+            self.enabledTypes.indexOf(CCConstants.STORE_CREDIT_PAYMENT_TYPE) != -1) {
+          self.isStoreCreditEnabled(true);
+        } else {
+          self.isStoreCreditEnabled(false);
+        }
+
+        if (self.enabledTypes &amp;&amp;
+            self.enabledTypes.indexOf(CCConstants.IN_STORE_PAYMENT_TYPE) != -1) {
+          self.isInStorePaymentEnabled(true);
+        }
+
+        if (self.enabledTypes &amp;&amp;
+            self.enabledTypes.indexOf(CCConstants.PAYULATAM_CHECKOUT_TYPE) != -1) {
+          self.isPayuLPaymentEnabled(true);
+        }
+
+        if (self.enabledTypes &amp;&amp;
+            self.enabledTypes.indexOf(CCConstants.CASH_PAYMENT_TYPE) != -1) {
+          self.isCashPaymentEnabled(true);
+        } else {
+          self.isCashPaymentEnabled(false);
+        }
+        
+        // Set Cash enabled countries List
+        self.setCashEnabledCountries();
+        self.scheduleOrderEnabledGateways = data.scheduledOrderEnabledGateways;
+        self.approvalEnabledGateways = data.approvalEnabledGateways;
+        self.isCardGatewayGeneric = data.isCardGatewayGeneric;
+        self.isCVVRequiredForSavedCards = data.isCVVRequiredForSavedCards;
+        StoreConfiguration.getInstance().isCVVRequiredForSavedCards(null != data.isCVVRequiredForSavedCards &amp;&amp; data.isCVVRequiredForSavedCards == true? true: false);
+        self.allowSavingCards = data.allowSavingCards;
+        StoreConfiguration.getInstance().allowSavingCards(null != data.allowSavingCards &amp;&amp; data.allowSavingCards == true? true: false);
+
+        for (var i=0; i&lt;data.scheduledOrderEnabledGateways.length; i++) {
+          if (data.scheduledOrderEnabledGateways[i] === CCConstants.CARD_PAYMENT_TYPE) {
+            self.isCardEnabledForScheduledOrder(true);
+          }
+
+          if (data.scheduledOrderEnabledGateways[i] === CCConstants.GIFT_CARD_PAYMENT_TYPE) {
+            self.isGiftCardEnabledForScheduledOrder(true);
+          }
+
+          if (data.scheduledOrderEnabledGateways[i] === CCConstants.INVOICE_PAYMENT_TYPE) {
+            self.isInvoiceEnabledForScheduledOrder(true);
+          }
+
+          if (data.scheduledOrderEnabledGateways[i] === CCConstants.CASH_PAYMENT_TYPE) {
+            self.isCashEnabledForScheduledOrder(true);
+          }
+
+          if (data.scheduledOrderEnabledGateways[i] === CCConstants.PAYULATAM_CHECKOUT_TYPE) {
+            self.isPayULEnabledForScheduledOrder(true);
+          }
+          
+          if (data.scheduledOrderEnabledGateways[i] === CCConstants.PAYPAL_PAYMENT_TYPE) {
+            self.isPaypalEnabledForScheduledOrder(true);
+          }
+          
+          if (data.scheduledOrderEnabledGateways[i] === CCConstants.LOYALTY_POINTS_PAYMENT_TYPE) {
+            self.isLoyaltyEnabledForScheduledOrder(true);
+          }
+
+          if (data.scheduledOrderEnabledGateways[i] === CCConstants.STORE_CREDIT_PAYMENT_TYPE) {
+            self.isStoreCreditEnabledForScheduledOrder(true);
+          }
+
+          if (data.scheduledOrderEnabledGateways[i] === CCConstants.IN_STORE_PAYMENT_TYPE) {
+            self.isInStorePaymentEnabledForScheduledOrder(true);
+          }
+        }
+        for (var i=0; i&lt;data.approvalEnabledGateways.length; i++) {
+          if (data.approvalEnabledGateways[i] === CCConstants.CARD_PAYMENT_TYPE) {
+            self.isCardEnabledForApproval(true);
+          }
+
+          if (data.approvalEnabledGateways[i] === CCConstants.GIFT_CARD_PAYMENT_TYPE) {
+            self.isGiftCardEnabledForApproval(true);
+          }
+
+          if (data.approvalEnabledGateways[i] === CCConstants.INVOICE_PAYMENT_TYPE) {
+            self.isInvoiceEnabledForApproval(true);
+          }
+
+          if (data.approvalEnabledGateways[i] === CCConstants.CASH_PAYMENT_TYPE) {
+            self.isCashEnabledForApproval(true);
+          }
+
+          if (data.approvalEnabledGateways[i] === CCConstants.PAYULATAM_CHECKOUT_TYPE) {
+            self.isPayULEnabledForApproval(true);
+          }
+          
+          if (data.approvalEnabledGateways[i] === CCConstants.PAYPAL_PAYMENT_TYPE) {
+            self.isPaypalEnabledForApproval(true);
+          }
+          
+          if (data.approvalEnabledGateways[i] === CCConstants.LOYALTY_POINTS_PAYMENT_TYPE) {
+            self.isLoyaltyEnabledForApproval(true);
+          }
+          
+          if (data.approvalEnabledGateways[i] === CCConstants.STORE_CREDIT_PAYMENT_TYPE) {
+            self.isStoreCreditEnabledForApproval(true);
+          }
+
+          if (data.approvalEnabledGateways[i] === CCConstants.IN_STORE_PAYMENT_TYPE) {
+            self.isInStorePaymentEnabledForApproval(true);
+          }
+        }
+        
+        // Converting the enabledTypes to a Map so that it can be used in drop downs
+        for(var i=0; i &lt; self.enabledTypes.length; i++) {
+          // Since the cash in common resource file is already mapped to 'Cash Payment' need to 
+          // handle this indirectly by creating another constant cashPaymentMethod which maps to 'Cash'
+          if(self.enabledTypes[i] == CCConstants.CASH_PAYMENT_TYPE) {
+            self.paymentMethods().push({name:CCi18n.t('ns.common:resources.cashPaymentMethod'), value:self.enabledTypes[i]});	
+          } else if (self.enabledTypes[i] == CCConstants.LOYALTY_POINTS_PAYMENT_TYPE) {
+            self.isLoyaltyEnabled(true);
+          } else {
+            self.paymentMethods().push({name:CCi18n.t('ns.common:resources.'+ self.enabledTypes[i]), value:self.enabledTypes[i]});
+          }
+
+        }
+      };
+      
+      /**
+       * Payment authorization details.
+       * @param {string} pEmailAddress Email address.
+       * @param {Address} pBillingAddress Billing address.
+       * @param {Object} pPaymentDetails The payment details.
+       * @param {Object} pPaymentGroupDetails The Payment group details
+       * @param {Object} pOrderDetails The order details.
+       */
+      self.createPaymentAuthDetails = function(pEmailAddress, pBillingAddress,
+          pPaymentDetails, pPaymentGroupDetails, pOrderDetails) {
+      	
+      	var paymentAuthDetails = {};
+      	
+      	paymentAuthDetails.emailAddress = pEmailAddress;
+        paymentAuthDetails.billingAddress = pBillingAddress;
+        paymentAuthDetails.paymentDetails = pPaymentDetails;
+        
+        pOrderDetails.payments = [];
+        pOrderDetails.payments.push(ko.toJS(pPaymentGroupDetails));
+        paymentAuthDetails.orderDetails = pOrderDetails;
+
+        return paymentAuthDetails;
+      }
+      
+      /**
+       * Utility method to create the payment object based on the payment method type
+       * @param {String} type - Type of the payment method
+       * */
+      self.createPaymentGroup = function(type) {
+        var payment = null;
+        switch (type) {
+          case CCConstants.CARD_PAYMENT_TYPE:
+            payment = new CreditCard();
+            break;
+            
+          case CCConstants.GIFT_CARD_PAYMENT_TYPE:
+            payment = new GiftCard();
+            break;
+            
+          case CCConstants.CASH_PAYMENT_TYPE:
+            payment = new Cash();
+            break;
+            
+          case CCConstants.INVOICE_PAYMENT_TYPE:
+            payment = new Invoice();
+            break;
+            
+          case CCConstants.PAYPAL_PAYMENT_TYPE:
+            payment = new Paypal();
+            break;
+            
+          case CCConstants.PAYULATAM_CHECKOUT_TYPE:
+            payment = new PayU();
+            break;
+            
+          case CCConstants.LOYALTY_POINTS_PAYMENT_TYPE:
+            payment = new Loyalty();
+            break;
+            
+          case CCConstants.STORE_CREDIT_PAYMENT_TYPE:
+            payment = new StoreCredit();
+            break;
+
+          case CCConstants.IN_STORE_PAYMENT_TYPE:
+            payment = new InStorePayment();
+            break;
+        }
+        payment.useDefaultBillingAddress = ko.observable(false);
+        payment.isDefaultAddressValid = ko.observable(true);
+        return payment;
+      };
+      
+      /**
+       * This method is used to process (partial) payments using the add payments API
+       * @param {function} success - Success Call back function
+       * @param {function} error - Error Call back function
+       * @param {String} pOrderId - (optional) Order Id
+       * @param {String} pUUID - UUID of the order. Mandatory for Anonymous flows in Store front context
+       * @param {String} pProfileId - (optional) Profile Id of the shopper. For Store front, 
+       * this is not required 
+       * @param {String} pChannel - (optional) Channel 
+       * @param {Object} pPayments - (optional) Payments array to be processed. If not passed, 
+       * will take from the pendingPayments view model property 
+       **/
+      self.processPayments = function(success, error, pOrderId, pUUID, pProfileId, pChannel, pPayments) {
+        var self = this;
+        
+        // Validate the input before processing the payments
+        var tempValidationForPayment = null;
+        if(pPayments) {
+          tempValidationForPayment = pPayments;
+        } else {
+          tempValidationForPayment = self.pendingPayments();
+        }
+        for(var i=0; i&lt;tempValidationForPayment.length; i++) {
+        	if(!tempValidationForPayment[i].validatePaymentData()) {
+        		// OOTB widget already validating the payment data while adding to pending
+        		// payment array. Additional check in case merchant did not handle the widget
+        		// validation properly
+        		return;
+        	}
+        }
+        
+        // Request pay load for addPayment API
+        var input = {};
+        
+        // Order Id
+        if(pOrderId) {
+          input["orderId"] = pOrderId;
+        } 
+        
+        // order uuid
+        if (pUUID) {
+        	input["uuid"] = pUUID;
+        }
+        
+        // Profile Id
+        if(pProfileId) {
+          input["profileId"] = pProfileId;
+        }
+        
+        // Channel 
+        if(pChannel) {
+          input["channel"] = pChannel;
+        }
+        
+        // Payments
+        var tempPayments = [];
+        if(pPayments &amp;&amp; pPayments.length > 0) {
+          tempPayments = self.preparePaymentsRequest(pPayments);
+        } else if(self.pendingPayments() &amp;&amp; self.pendingPayments().length > 0) {
+          tempPayments = self.preparePaymentsRequest(self.pendingPayments());
+        }
+        input["payments"] = tempPayments;
+        
+        // Wrapper over the success call back where we are mapping the server payment group
+        // response data to the request payment objects before calling the success call back
+        var successHandler = function(data) {
+          var requestPaymentsArray = [];
+          if(pPayments) {
+          	requestPaymentsArray = pPayments;
+          } else {
+          	requestPaymentsArray = self.pendingPayments();
+          }
+          
+          // Map request to response
+          for(var i=0; i&lt;data.paymentResponses.length; i++) {
+          	for(var j=0; j&lt;requestPaymentsArray.length; j++) {
+          		if(data.paymentResponses[i].seqNum == requestPaymentsArray[j].seqNum) {
+          			
+          			for(var key in data.paymentResponses[i]) {
+                  if($.inArray(key, self.excludeFieldsMap) == -1) {
+                  	if(ko.isObservable(requestPaymentsArray[j][key])) {
+                  		requestPaymentsArray[j][key](data.paymentResponses[i][key]);
+                  	} else {
+                  		requestPaymentsArray[j][key] = data.paymentResponses[i][key];
+                  	}
+                  }
+                }
+          			break;
+          		}
+          	}
+          }
+          
+          // call success function
+          success(data);
+        };
+        
+        // Invoke the add payment API
+        ccRestClient.request(CCConstants.ADD_ORDER_PAYMENTS, input, successHandler, error);
+      };
+      
+      /**
+       * This method is used to inquire gift card balance add payments API. Multiple gift cards 
+       * can be passed in the request
+       * @param {function} success - Success Call back function
+       * @param {function} error - Error Call back function
+       * @param {String} pOrderId - Order Id
+       * @param {Object} pPayments - Payments array to be processed
+       * @param {String} pProfileId - User profile id for shopper
+       **/
+      self.inquireBalance = function(success, error, pPayments, pProfileId) {
+        // Request pay load for addPayment API
+        var input = {};
+        
+        input["op"] = CCConstants.INQUIRE_GIFT_CARD_BALANCE;
+        
+        // Gift card payments to which balance to be inquired
+        var tempPayments = [];
+        if(pPayments &amp;&amp; pPayments.length > 0) {
+          tempPayments = self.preparePaymentsRequest(pPayments);
+        }
+        input["payments"] = tempPayments;
+        
+        if(pProfileId){
+          input[CCConstants.PROFILE_ID] = pProfileId;
+        }
+        // Invoke the API
+        ccRestClient.request(CCConstants.ADD_ORDER_PAYMENTS, input, success, error);
+      };
+      
+      /**
+       * Utility method to prepare payments JSON data from the payment view models
+       * @param {Object} payments - Array of payments view models
+       * @return {Object} Array of JSON payment data
+       * */
+      self.preparePaymentsRequest = function(payments) {
+        var tempPayments = [];
+        for(var i = 0; i &lt; payments.length; i++) {
+        	payments[i].seqNum = i.toString();
+          var payment = {};
+          var jsViewModel = null;
+          if (payments[i].toJSON &amp;&amp; $.isFunction(payments[i].toJSON)) {
+            jsViewModel = payments[i].toJSON();
+          } else {
+            jsViewModel = payments[i];
+          }
+          //var jsViewModel = ko.mapping.toJS(payments[i]);
+          for(var prop in jsViewModel) {
+            if($.isFunction(jsViewModel[prop])) {
+              continue;
+            }
+            payment[prop] = jsViewModel[prop];
+          }
+          tempPayments.push(payment);
+        }
+        return tempPayments;
+      };
+      
+      /**
+       * Utility method to reset the state of paymentsViewModel
+       * */
+      self.resetPaymentsContainer = function() {
+        if(!self.isPaypalVerified()){
+          // Reset payment related data
+          self.completedPayments([]);
+          self.pendingPayments([]);
+          self.failedPayments([]);
+          self.historicalCompletedPayments([]);
+          self.historicalCompletedLoyaltyPayments([]);
+          self.toBeVoidedPayments([]);
+          self.paymentDue(0);
+          self.loyaltyPaymentDue(0);
+        }
+      };
+      
+      /**
+       * Utility method to populate a view model from server data
+       */
+      self.populateViewModelWithServerData = function(viewModel, data) {
+        if (data.paymentResponses &amp;&amp; data.paymentResponses.length > 0) {
+          for(var key in data.paymentResponses[0]) {
+            viewModel[key] = data.paymentResponses[0][key];
+          }
+        }
+      };
+      
+      /**
+       * Finds whether there are minimum points required.
+       */
+      self.hasSufficientPoints = function(loyaltyViewModel, pointsType, minPtsRequired) {
+        var hasPoints = false;
+        if (loyaltyViewModel &amp;&amp; loyaltyViewModel.selectedProgramDetails()
+            &amp;&amp; loyaltyViewModel.selectedProgramDetails().loyaltyPointDetails) {
+          var loyaltyPointDetails = loyaltyViewModel.selectedProgramDetails().loyaltyPointDetails;
+          for (var i = 0; i &lt; loyaltyPointDetails.length; i++) {
+            if (loyaltyPointDetails[i].pointsType &amp;&amp; loyaltyPointDetails[i].pointsType == pointsType) {
+              if (loyaltyPointDetails[i].pointsBalance &amp;&amp; loyaltyPointDetails[i].pointsBalance >= minPtsRequired) {
+                hasPoints = true;
+                break;
+              }
+            }
+          }
+        }
+        return hasPoints;
+      };
+
+      /**
+       *update payment data from url parameters
+       */
+      self.updatePaymentGatewayData = function(data) {
+        var parameterString = data.parameters;
+        if (parameterString) {
+            var params = parameterString.split('&amp;');
+            var result = {};
+            for (var i = 0; i &lt; params.length; i++) {
+              var entries = params[i].split('=');
+              result[entries[0]] = entries[1];
+            }
+
+            if (result[CCConstants.PAYMENT_ID] &amp;&amp; result[CCConstants.TOKEN] &amp;&amp; result[CCConstants.PAYER_ID]) {
+              var payment = self.createPaymentGroup(CCConstants.PAYPAL_PAYMENT_TYPE);
+              payment.updatePaymentData(result);
+              self.isPaypalVerified(true);
+              if (self.pendingPayments().length > 0) {
+                if (self.pendingPayments()[0].paymentMethodType == CCConstants.PAYPAL_PAYMENT_TYPE) {
+                  self.pendingPayments()[0] = payment;
+                }
+              } else {
+                self.pendingPayments().unshift(payment);
+              }
+            } else if (parameterString.indexOf(CCConstants.PAYU_REFERENCE_POL) != -1) {
+              var txstatus_payu = result[CCConstants.PAYU_TRANSACTION_STATE];
+              if (txstatus_payu == CCConstants.PAYU_TRANSACTION_APPROVED_CODE || 
+                  txstatus_payu == CCConstants.PAYU_TRANSACTION_PENDING_CODE || 
+                  txstatus_payu == CCConstants.PAYU_TRANSACTION_DECLINED_CODE || 
+                  txstatus_payu == CCConstants.PAYU_TRANSACTION_EXPIRED_CODE || 
+                  txstatus_payu == CCConstants.PAYU_TRANSACTION_ERROR_CODE) {
+                var referenceCode = result[CCConstants.PAYU_REFERENCE_CODE];
+                var tx_value = result[CCConstants.PAYU_TX_VALUE];
+                var currency = result[CCConstants.CURRENCY];
+                var signature = result[CCConstants.SIGNATURE];
+              }
+            }  else {
+              self.isPaypalVerified(false);
+            }
+          } else if (self.isPaypalVerified() &amp;&amp; !(navigation.getPathWithoutLocale() == self.checkoutLink)) {
+            self.isPaypalVerified(false);
+            self.resetPaymentsContainer();
+          }
+
+      };
+      
+        /**
+         * Utility method to populate a gift card data
+         */
+        self.populateGiftCardsCallBack = function(pricingModel, lastCartEvent) {
+          if (self.pendingPayments().length > 0) {
+            for (var i = 0; i &lt; self.pendingPayments().length; i++) {
+              if (self.pendingPayments()[i].paymentMethodType == "physicalGiftCard") {
+                var giftItem = {};
+                var giftCard = self.pendingPayments()[i];
+                giftItem['type'] = CCConstants.GIFT_CARD_PAYMENT_TYPE;
+                giftItem['giftCardNumber'] = giftCard.giftCardNumber();
+                giftItem['giftCardPin'] = giftCard.giftCardPin();
+                if (giftCard.amountInGiftCard()) {
+                  if (!(lastCartEvent
+                      &amp;&amp; lastCartEvent.type === CART_EVENT_GIFTCARD_REAPPLY &amp;&amp; lastCartEvent.product
+                      .giftCardNumber() === giftCard.giftCardNumber())) {
+                    giftItem['amount'] = giftCard.amountInGiftCard();
+                  }
+                }
+                pricingModel.payments.push(giftItem);
+              }
+            }
+          }
+        };
+
+        /**
+         * Utility method to update gift card data
+         */
+        self.updateGiftCardDetailsCallBack = function(data, lastCartEvent) {
+          var gcToBeRemoved = [];
+          if (data.payments &amp;&amp; self.pendingPayments().length > 0) {
+            for (var i = 0; i &lt; self.pendingPayments().length; i++) {
+              var found = false;
+              var giftCard = self.pendingPayments()[i];
+              for (var j = 0; j &lt; data.payments.length; j++) {
+                var giftCardPayment = data.payments[j];
+                if (giftCardPayment.paymentMethod == CCConstants.GIFT_CARD_PAYMENT_TYPE
+                    &amp;&amp; giftCard.giftCardNumber() == giftCardPayment.giftCardNumber) {
+                  giftCard.amountInGiftCard(giftCardPayment.balance);
+                  giftCard.amount(giftCardPayment.amount);
+                  // giftCard.isAmountRemaining(giftCardPayment.isAmountRemaining);
+                  giftCard.maskedNumber(giftCardPayment.maskedCardNumber);
+                  // giftCard.isApplyGiftCardClicked(false);
+                  found = true;
+                  break;
+                }
+              }
+
+              // if (lastCartEvent &amp;&amp; lastCartEvent.product &amp;&amp;
+              // lastCartEvent.product.giftCardNumber &amp;&amp;
+              // lastCartEvent.product.giftCardNumber() ===
+              // giftCard.giftCardNumber()) {
+              // giftCard.isPinCleared(false);
+              // }
+
+              if (found == false) {
+                gcToBeRemoved.push(giftCard);
+              }
+            }
+            for (var k = 0; k &lt; gcToBeRemoved.length; k++) {
+              self.pendingPayments.remove(function(item) {
+                return item.giftCardNumber() == gcToBeRemoved[k]
+                    .giftCardNumber();
+              });
+            }
+            // TODO: Verify if we should send cart error or paymentVM error
+            if (gcToBeRemoved &amp;&amp; gcToBeRemoved.length > 0) {
+              notifier.sendError(PAYMENTS_VIEW_MODEL_ID, CCi18n
+                  .t('ns.common:resources.orderPricingPromotionError'), true);
+            }
+
+          }
+        };
+      /**
+       * Get the payment gateway settings to check if the storeCredit is enabled
+       * If its enabled, get store credit balance
+       * @param pSuccessCallback
+       * @param pFailureCallback
+       * @param pProfileId
+       */
+      self.retrieveStoreCreditBalance = function(pSuccessCallback, pFailureCallback, pProfileId){
+          var self = this;
+          var data = {};
+          ccRestClient.request(CCConstants.ENDPOINT_PAYMENT_GET_GATEWAYS, data,
+            function(pData) {
+            var paymentGateways = pData.paymentGateways;
+            for(var i = 0; i &lt; paymentGateways.length; i++) {
+              if(paymentGateways[i].enabled) {
+                // if Generic payment Gateway
+                if(paymentGateways[i].type === CCConstants.GENERIC_PAYMENT_GATEWAY) {
+                  var enabledTypes = paymentGateways[i].agentConfigEnabledTypes || [];
+                  if( enabledTypes.length == 0){
+                    continue;
+                  }
+                  for(var j = 0; j &lt; enabledTypes.length; j++) {
+                    if (enabledTypes[j] === CCConstants.STORE_CREDIT_PAYMENT_TYPE) {
+                      var payments = [];      
+                      payments.push({paymentMethodType : CCConstants.STORE_CREDIT_PAYMENT_TYPE});
+                      self.inquireBalance(pSuccessCallback, pFailureCallback, payments, pProfileId);
+                    }
+                  }
+                }
+              }
+            }
+          },
+          function(pData) {
+          });
+      };
+      /*
+       * This method is used to reset the authorized amount variables
+       * in case of order amendment.
+       * (Specific to agent only) 
+       */
+      self.resetAmountAuthorized = function(){
+        self.totalAmountAuthorized(0);
+        self.primaryCurrencyTotalAmountAuthorized(0);
+        self.totalAmountAuthorizedOnVoid(0);
+      };
+
+      /**
+       * Utility method to check whether a payment is authorized or not based on state.
+       * */
+      self.isPaymentAuthorized = function(pPaymentState) {
+        if(!(pPaymentState != CCConstants.PAYMENT_STATE_AUTHORIZED
+              &amp;&amp; pPaymentState != CCConstants.PAYMENT_GROUP_STATE_AUTHORIZED
+                  &amp;&amp; pPaymentState != CCConstants.PAYMENT_STATE_SETTLED
+                  &amp;&amp; pPaymentState != CCConstants.PAYMENT_GROUP_STATE_SETTLED
+                  &amp;&amp; pPaymentState != CCConstants.PAYMENT_STATE_PAYMENT_REQUEST_ACCEPTED
+                  &amp;&amp; pPaymentState != CCConstants.PAYMENT_GROUP_STATE_PAYMENT_REQUEST_ACCEPTED
+                  &amp;&amp; pPaymentState != CCConstants.PAYMENT_STATE_PAYMENT_DEFERRED
+                  &amp;&amp; pPaymentState != CCConstants.PAYMENT_GROUP_PAYMENT_DEFERRED)) {
+          return true;
+        } else {
+          return false;
+        }
+      };
+
+      /**
+       * Utility method to check if void is initiated on payment group
+       * @param pPaymentGroup payment group
+       * @return {Boolean}
+       */
+      self.isVoidInitiatedForPaymentGroup = function(pPaymentGroup) {
+        var isVoidInitiated = false;
+        if(pPaymentGroup.transactionTypeInitiated &amp;&amp; pPaymentGroup.transactionTypeInitiated == "void") {
+          isVoidInitiated = true;
+        }
+        return isVoidInitiated;
+      };
+      /**
+       * Removes a payment that is already authorized
+       * @param pPaymentGroupData The payment group to be voided
+       * @param pCancReason
+       * @param pOrderID orderId
+       * @param success successCallback
+       * @param failure failureCallback
+       * */
+        self.voidAuthorizedPayment = function(pPaymentGroupData, pCancelReason, pOrderId,
+            success, failure) {
+
+          var self = this;
+          var payments = [];
+
+          var payment = {};
+          self.removablePaymentGroup = pPaymentGroupData.array[pPaymentGroupData.index];
+          self.removabelPaymentIndex = pPaymentGroupData.index;
+          payment.paymentGroupId = pPaymentGroupData.array[pPaymentGroupData.index].paymentGroupId;
+          payment.cancelReason = pCancelReason;
+          payments.push(payment);
+
+          var inputData = {};
+          var url = "voidPayments";
+          inputData["orderId"] = pOrderId;
+          inputData["payments"] = payments;
+          ccRestClient.request(url, inputData,
+          // success callback
+          function(pData) {
+            success(pData);
+          },
+          // failure callback
+          function(pData) {
+            failure(pData);
+          });
+        };
+      /**
+       * Method to populate completed payments array
+       * @param pPaymentGroups payment groups to be populated
+       */
+      self.populateCompletedPayments = function(pPaymentGroups) {
+        var self = this;
+        var paymentGroupsLength = pPaymentGroups.length;
+        for (var i=0 ; i &lt; paymentGroupsLength ; i++) {
+          var isVoidInitiated = self.isVoidInitiatedForPaymentGroup(pPaymentGroups[i]);
+          if(self.isPaymentAuthorized(pPaymentGroups[i].paymentState) &amp;&amp; !isVoidInitiated) {
+            self.completedPayments.push(pPaymentGroups[i]);
+
+          }
+        }
+      };
+      /**
+       * Method to void payments in edit order.
+       * Logic:
+       * 1. Calls cancel payments endpoint to void required payments. Then order can either move to SUBMITTED state or
+       *    PENDING PAYMENT state.- added another call to get the state of the order.
+       * NOTE: As order state is not accepted to send in cancel payments endpoint response we are making another endpoint call(Get Order) to get the state.
+       * 2. If the order moved to submitted state then display order details &lt;end>
+       * 3. If the order is in pending payment state and if the payments that need to be voided are voided successfully then do authorization
+       *    (with the given payments) by calling submit order else redirect the order to pending payment state without authorizing.
+       * */
+      self.voidPaymentsInAmendment = function(pOrderId, success, failure) {
+        var self = this;
+        var deferredObjectPromise = self.getDeferredVoidPaymentResponse(pOrderId);
+        deferredObjectPromise.done(function(responseSuccessObject){
+          success(responseSuccessObject, pOrderId);
+        });
+        deferredObjectPromise.fail(function(failureObject) {
+          failure(failureObject);
+       });
+      };
+      /**
+       * Method to invoke the void payments request in pending payment scenario
+       *
+       */
+        self.getDeferredVoidPaymentResponse = function(pOrderId) {
+          var self = this;
+          var inputData = {};
+          inputData[CCConstants.ORDER_ID] = pOrderId;
+          inputData[CCConstants.PAYMENTS] = self.toBeVoidedPayments();
+          var deferred = $.Deferred();
+
+          ccRestClient.request(CCConstants.END_POINT_VOID_PAYMENTS, inputData,
+              function(data) {
+                deferred.resolve(data);
+              },
+              function(pError) {
+                  deferred.reject(pError);
+              });
+          return deferred.promise();
+        };
+
+      /**
+       * Utility method to clear the completed payments array (In edit order flow)
+       * Currently being used only for Agent app
+       */
+      self.clearAuthorizedPayments = function(){
+        var self = this;
+        self.completedPayments.removeAll();
+      };
+
+      if (ccRestClient.profileType !== CCConstants.PROFILE_TYPE_AGENT) {
+        $.Topic(pubsub.topicNames.PAGE_CHANGED).subscribe(self.updatePaymentGatewayData.bind(self));
+      }
+      return self;
+    }
+
+    /**
+     * Return the single instance of PaymentsViewModel. Create it if it doesn't exist.
+     * @function
+     * @name PaymentsViewModel.getInstance
+     * @param {Object} [data] Additional data.
+     * @return {PaymentsViewModel} Singleton instance.
+     */
+    PaymentsViewModel.getInstance = function(data, pUserData) {
+      if(!PaymentsViewModel.singleInstance) {
+        PaymentsViewModel.singleInstance = new PaymentsViewModel();
+      }
+      if (data) {
+        PaymentsViewModel.singleInstance.populatePaymentData(data, pUserData);
+      }
+      return PaymentsViewModel.singleInstance;
+    };
+    
+    return PaymentsViewModel;
+    
+});</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Index</a></h2><h3>Modules</h3><ul><li><a href="module-ccKoErrorWrapper.html">ccKoErrorWrapper</a></li><li><a href="module-ccKoExtensions.html">ccKoExtensions</a></li></ul><h3>Classes</h3><ul><li><a href="Address.html">Address</a></li><li><a href="CartViewModel.html">CartViewModel</a></li><li><a href="CCStoreConfiguration.html">CCStoreConfiguration</a></li><li><a href="CheckoutScheduledOrder.html">CheckoutScheduledOrder</a></li><li><a href="delegatedAdminContacts.html">delegatedAdminContacts</a></li><li><a href="DynamicProperty.html">DynamicProperty</a></li><li><a href="DynamicPropertyMetaContainer.html">DynamicPropertyMetaContainer</a></li><li><a href="EventDispatcher.html">EventDispatcher</a></li><li><a href="GiftCardViewModel.html">GiftCardViewModel</a></li><li><a href="GiftProductListingViewModel.html">GiftProductListingViewModel</a></li><li><a href="global.html#InfinityViewModel">InfinityViewModel</a></li><li><a href="IntegrationViewModel.html">IntegrationViewModel</a></li><li><a href="ko.bindingHandlers.background.html">background</a></li><li><a href="ko.bindingHandlers.carouselSwipe.html">carouselSwipe</a></li><li><a href="ko.bindingHandlers.ccDateTime.html">ccDateTime</a></li><li><a href="ko.bindingHandlers.ccForm.html">ccForm</a></li><li><a href="ko.bindingHandlers.ccLink.html">ccLink</a></li><li><a href="ko.bindingHandlers.ccValidation.html">ccValidation</a></li><li><a href="ko.bindingHandlers.checkbox.html">checkbox</a></li><li><a href="ko.bindingHandlers.chosen.html">chosen</a></li><li><a href="ko.bindingHandlers.contextResourcesNamespace.html">contextResourcesNamespace</a></li><li><a href="ko.bindingHandlers.currency.html">currency</a></li><li><a href="ko.bindingHandlers.datepicker.html">datepicker</a></li><li><a href="ko.bindingHandlers.datepopover.html">datepopover</a></li><li><a href="ko.bindingHandlers.draggable.html">draggable</a></li><li><a href="ko.bindingHandlers.droppable.html">droppable</a></li><li><a href="ko.bindingHandlers.fade.html">fade</a></li><li><a href="ko.bindingHandlers.hover.html">hover</a></li><li><a href="ko.bindingHandlers.image.html">image</a></li><li><a href="ko.bindingHandlers.imageSource.html">imageSource</a></li><li><a href="ko.bindingHandlers.imageZoom.html">imageZoom</a></li><li><a href="ko.bindingHandlers.localeText.html">localeText</a></li><li><a href="ko.bindingHandlers.makeAccess.html">makeAccess</a></li><li><a href="ko.bindingHandlers.modal.html">modal</a></li><li><a href="ko.bindingHandlers.modalTabbingContraint.html">modalTabbingContraint</a></li><li><a href="ko.bindingHandlers.onRender.html">onRender</a></li><li><a href="ko.bindingHandlers.popeditor.html">popeditor</a></li><li><a href="ko.bindingHandlers.popover.html">popover</a></li><li><a href="ko.bindingHandlers.productImageSource.html">productImageSource</a></li><li><a href="ko.bindingHandlers.productVariantImageSource.html">productVariantImageSource</a></li><li><a href="ko.bindingHandlers.propertyEditor.html">propertyEditor</a></li><li><a href="ko.bindingHandlers.radio.html">radio</a></li><li><a href="ko.bindingHandlers.richTextEditor.html">richTextEditor</a></li><li><a href="ko.bindingHandlers.scrollAffix.html">scrollAffix</a></li><li><a href="ko.bindingHandlers.select2.html">select2</a></li><li><a href="ko.bindingHandlers.select2Tags.html">select2Tags</a></li><li><a href="ko.bindingHandlers.selectable.html">selectable</a></li><li><a href="ko.bindingHandlers.slide.html">slide</a></li><li><a href="ko.bindingHandlers.slider.html">slider</a></li><li><a href="ko.bindingHandlers.spectrum.html">spectrum</a></li><li><a href="ko.bindingHandlers.textCheck.html">textCheck</a></li><li><a href="ko.bindingHandlers.timepicker.html">timepicker</a></li><li><a href="ko.bindingHandlers.triggerMessage.html">triggerMessage</a></li><li><a href="ko.bindingHandlers.validatableTarget.html">validatableTarget</a></li><li><a href="ko.bindingHandlers.validatableValue.html">validatableValue</a></li><li><a href="ko.bindingHandlers.widgetLocaleText.html">widgetLocaleText</a></li><li><a href="koValidation.alphaNumeric.html">alphaNumeric</a></li><li><a href="koValidation.alphaNumericNoSpaces.html">alphaNumericNoSpaces</a></li><li><a href="koValidation.alphaNumericNoSpacesNoDashesWithSeperators.html">alphaNumericNoSpacesNoDashesWithSeperators</a></li><li><a href="koValidation.alphaNumericNoSpacesWithSeperators.html">alphaNumericNoSpacesWithSeperators</a></li><li><a href="koValidation.alphaNumericWithSeperators.html">alphaNumericWithSeperators</a></li><li><a href="koValidation.bool.html">bool</a></li><li><a href="koValidation.creditcard.html">creditcard</a></li><li><a href="koValidation.cvv.html">cvv</a></li><li><a href="koValidation.endmonth.html">endmonth</a></li><li><a href="koValidation.endyear.html">endyear</a></li><li><a href="koValidation.importFileName.html">importFileName</a></li><li><a href="koValidation.laterDate.html">laterDate</a></li><li><a href="koValidation.match.html">match</a></li><li><a href="koValidation.mediaZipFileName.html">mediaZipFileName</a></li><li><a href="koValidation.number.html">number</a></li><li><a href="koValidation.observablePattern.html">observablePattern</a></li><li><a href="koValidation.password.html">password</a></li><li><a href="koValidation.price.html">price</a></li><li><a href="koValidation.propertyIdAlreadyInUse.html">propertyIdAlreadyInUse</a></li><li><a href="koValidation.propertyNameAlreadyInUse.html">propertyNameAlreadyInUse</a></li><li><a href="koValidation.restrictSlashCharacters.html">restrictSlashCharacters</a></li><li><a href="koValidation.startmonth.html">startmonth</a></li><li><a href="koValidation.startyear.html">startyear</a></li><li><a href="koValidation.uniqueTrimmed.html">uniqueTrimmed</a></li><li><a href="koValidation.uniqueTrimmedCaseInsensitive.html">uniqueTrimmedCaseInsensitive</a></li><li><a href="koValidation.url.html">url</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.addTemplate.html">addTemplate</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.agentBar.html">agentBar</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.ccDate.html">ccDate</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.ccNumber.html">ccNumber</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.ccResizeImage.html">ccResizeImage</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.disabled.html">disabled</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.element.html">element</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.embeddedAssistance.html">embeddedAssistance</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.fireChange.html">fireChange</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.inTabFlow.html">inTabFlow</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.noIndexMeta.html">noIndexMeta</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.previewBar.html">previewBar</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.setContextVariable.html">setContextVariable</a></li><li><a href="multiCartViewModel.html">multiCartViewModel</a></li><li><a href="NavStateViewModel.html">NavStateViewModel</a></li><li><a href="OrderDetailsViewModel.html">OrderDetailsViewModel</a></li><li><a href="OrderHistoryViewModel.html">OrderHistoryViewModel</a></li><li><a href="OrdersPendingApprovalViewModel.html">OrdersPendingApprovalViewModel</a></li><li><a href="OrderViewModel.html">OrderViewModel</a></li><li><a href="Organization.html">Organization</a></li><li><a href="ParentOrganisation.html">ParentOrganisation</a></li><li><a href="ProductListingSearchViewModel.html">ProductListingSearchViewModel</a></li><li><a href="ProductListingViewModel.html">ProductListingViewModel</a></li><li><a href="ProductTypes.html">ProductTypes</a></li><li><a href="ProductViewModel.html">ProductViewModel</a></li><li><a href="PromotionUpsellContainer.html">PromotionUpsellContainer</a></li><li><a href="PubSub.topicNames.html">topicNames</a></li><li><a href="PurchaseListListingViewModel.html">PurchaseListListingViewModel</a></li><li><a href="PurchaseListViewModel.html">PurchaseListViewModel</a></li><li><a href="RegistrationRequestSearchViewModel.html">RegistrationRequestSearchViewModel</a></li><li><a href="resetCVV.html">resetCVV</a></li><li><a href="resetGiftCardPin.html">resetGiftCardPin</a></li><li><a href="resetPaymentDetails.html">resetPaymentDetails</a></li><li><a href="ReturnItem.html">ReturnItem</a></li><li><a href="ReturnViewModel.html">ReturnViewModel</a></li><li><a href="scheduledOrderList.html">scheduledOrderList</a></li><li><a href="SearchRestClient.html">SearchRestClient</a></li><li><a href="ServerData.html">ServerData</a></li><li><a href="UserViewModel.html">UserViewModel</a></li><li><a href="WidgetViewModel.html">WidgetViewModel</a></li><li><a href="WishlistContentViewModel.html">WishlistContentViewModel</a></li></ul><h3>Namespaces</h3><ul><li><a href="ko.bindingHandlers.html">bindingHandlers</a></li><li><a href="ko.extenders.html">extenders</a></li><li><a href="koValidation.html">koValidation</a></li></ul><h3>Global</h3><ul><li><a href="global.html#addItemToPurchaseList">addItemToPurchaseList</a></li><li><a href="global.html#callWidgetMethodIfApplicable">callWidgetMethodIfApplicable</a></li><li><a href="global.html#CartViewModel#deleteParticularIncompleteOrdersDeletesanincompleteorderbyorderId">CartViewModel#deleteParticularIncompleteOrdersDeletes an incomplete order by orderId</a></li><li><a href="global.html#CCEETagProcessor">CCEETagProcessor</a></li><li><a href="global.html#doesSiteExist">doesSiteExist</a></li><li><a href="global.html#fetchSkuDetailsListError">fetchSkuDetailsListError</a></li><li><a href="global.html#fetchSkuDetailsListSuccess">fetchSkuDetailsListSuccess</a></li><li><a href="global.html#formatSiteText">formatSiteText</a></li><li><a href="global.html#handleInitiateEditSuccess">handleInitiateEditSuccess</a></li><li><a href="global.html#isModified">isModified</a></li><li><a href="global.html#isValidDeterminewhetherornotthepaymentdetailsobjectisvalidbasedonthevalidityofitscomponentparts.Thiswillnotcauseerrormessagestobedisplayedforanyobservablevaluesthatareunchangedandhaveneverreceivedfocusontherelatedformfield(s).">isValidDetermine whether or not the payment details object is validbased on the validity of its component parts. This will notcause error messages to be displayed for any observable valuesthat are unchanged and have never received focus on the related form field(s).</a></li><li><a href="global.html#justFocused">justFocused</a></li><li><a href="global.html#mapProperties">mapProperties</a></li><li><a href="global.html#MENU_CLOSE_TIMEOUT">MENU_CLOSE_TIMEOUT</a></li><li><a href="global.html#populateData">populateData</a></li><li><a href="global.html#populateProductData">populateProductData</a></li><li><a href="global.html#reset">reset</a></li><li><a href="global.html#resetModified">resetModified</a></li><li><a href="global.html#Resetsstylingforthelazilyloadedimage">Resets styling for the lazily loaded image</a></li><li><a href="global.html#Setsupstylingfortheimagetobelazilyloaded">Sets up styling for the image to be lazily loaded</a></li><li><a href="global.html#ShopperContextViewModel">ShopperContextViewModel</a></li><li><a href="global.html#thelistofpropertiestoignorewhilecopyingdynamicpropertiestoaddressobject">the list of properties to ignore while copying dynamic properties to address object</a></li><li><a href="global.html#validatePaymentDetailsForceallrelevantmemberobservablestoperformtheirvalidationnow&displaytheerrors(ifany)">validatePaymentDetailsForce all relevant member observables to perform theirvalidation now & display the errors (if any)</a></li><li><a href="global.html#WidgetQueue">WidgetQueue</a></li></ul>
+</nav>
+
+<br clear="both">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.0</a> on Wed Feb 26 2020 18:22:22 GMT+0530 (IST)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

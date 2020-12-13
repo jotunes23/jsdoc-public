@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: Dynamo/Client/Store/web/store.war/shared/js/ccLibs/cc-store-configuration-1.0.js</title>
+    
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+    
+    <h1 class="page-title">Source: Dynamo/Client/Store/web/store.war/shared/js/ccLibs/cc-store-configuration-1.0.js</h1>
+    
+    
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source"><code>/**
+ * @fileoverview CCStoreConfiguration Class
+ *
+ * It is used to store configurations that will be used in storefront.
+ *
+ * Usage:
+ *
+ * 1) Include in the proper require.js main module with the following
+ * line:
+ *
+ * CCStoreConfiguration: '/shared/js/ccLibs/cc-store-configuration-1.0'
+ *
+ * 2) include in the module as follows:
+ *
+ * define(
+ *   [... 'ccStoreConfiguration' ...]
+ *   function( ... CCStoreConfiguration ...)
+ * )
+ *
+ * 3) Create a singleton instance for the library
+ *    storeConfiguration = CCStoreConfiguration.getInstance();
+ *
+ * 4) invoke as follows:
+ *  var filterKey = storeConfiguration.getFilterToUse(contextObject);
+ *
+ */
+
+define (
+  //----------------------
+  // PACKAGE NAME
+  //----------------------
+  'ccStoreConfiguration',
+
+  //-----------------------
+  // DEPENDENCIES
+  //-----------------------
+  ['knockout'],
+
+  //------------------------
+  // MODULE DEFINITION
+  //------------------------
+  function (ko) {
+
+    "use strict";
+
+    /**
+     * Creates a StoreConfiguration object.
+     * @name CCStoreConfiguration
+     * @class CCStoreConfiguration
+     */
+    function CCStoreConfiguration() {
+
+      if (CCStoreConfiguration.prototype.singleInstance) {
+        throw new Error ("Cannot instantiate more than one CCStoreConfiguration. Use getInstance() method");
+      }
+
+      var self = this;
+    }
+
+    /**
+     * Method to set custom maximum lengths for the
+     * properties (alias, firstName, lastName, address1,
+     * address2, address3, city) of Address view model.
+     *
+     * @name CCStoreConfiguration#setAddressMaxLengths
+     * @function
+     * @param {number} alias The maximum length to be set for alias property of address.
+     * @param {number} firstName The maximum length to be set for firstName property of address.
+     * @param {number} lastName The maximum length to be set for lastName property of address.
+     * @param {number} address1 The maximum length to be set for address1 property of address.
+     * @param {number} address2 The maximum length to be set for address2 property of address.
+     * @param {number} address3 The maximum length to be set for address3 property of address.
+     * @param {number} city The maximum length to be set for city property of address.
+     */
+    CCStoreConfiguration.setAddressMaxLengths = function(alias, firstName, lastName, address1, address2, address3, city) {
+      if(alias &amp;&amp; alias > 0 &amp;&amp; alias &lt; 254)
+        CCStoreConfiguration.ADDRESS_ALIAS_MAXIMUM_LENGTH = alias;
+      if(firstName &amp;&amp; firstName > 0 &amp;&amp; firstName &lt; 254)
+        CCStoreConfiguration.ADDRESS_FIRSTNAME_MAXIMUM_LENGTH = firstName;
+      if(lastName &amp;&amp; lastName > 0 &amp;&amp; lastName &lt; 254)
+        CCStoreConfiguration.ADDRESS_LASTNAME_MAXIMUM_LENGTH = lastName;
+      if(address1 &amp;&amp; address1 > 0 &amp;&amp; address1 &lt; 254)
+        CCStoreConfiguration.ADDRESS_ADDRESS1_MAXIMUM_LENGTH = address1;
+      if(address2 &amp;&amp; address2 > 0 &amp;&amp; address2 &lt; 254)
+        CCStoreConfiguration.ADDRESS_ADDRESS2_MAXIMUM_LENGTH = address2;
+      if(address3 &amp;&amp; address3 > 0 &amp;&amp; address3 &lt; 254)
+        CCStoreConfiguration.ADDRESS_ADDRESS3_MAXIMUM_LENGTH = address3;
+      if(city &amp;&amp; city > 0 &amp;&amp; city &lt; 254)
+        CCStoreConfiguration.ADDRESS_CITY_MAXIMUM_LENGTH = city;
+    }
+
+    /**
+     * An object containing the filterKeys to be used corresponding to a endpointCall contextData
+     * The key of this object is constructed using contextData, whereas the value corresponds to the
+     * filterKey that should be returned for the passed contextData
+     */
+    CCStoreConfiguration.prototype.filterMap = {
+        "getCollection":{
+          "megaMenuNavigation": {"ccFilterConfigKey": "categoryNavData"},
+          "categoryNavigation": {"ccFilterConfigKey": "categoryNavData"}
+        },
+        "listProducts":{
+          "productListingData": {"ccFilterConfigKey": "PLPData"},
+          "collectionWidget": {"ccFilterConfigKey": "collectionData"},
+          "getProductData": {"ccFilterConfigKey": "productData"},
+          "getProductDataAndRedirect": {"ccFilterConfigKey": "productData"},
+          "listProductsForAddons":{"ccFilterConfigKey" : "addonProductsData"}
+        }
+    };
+    CCStoreConfiguration.prototype.largeCart = undefined;
+
+    CCStoreConfiguration.prototype.isCVVRequiredForSavedCards = ko.observable(true);
+    CCStoreConfiguration.prototype.allowSavingCards = ko.observable(false);
+
+    /**
+     * An array containing the priority of data, that will be used to search the filterKey using context object.
+     */
+    CCStoreConfiguration.prototype.priorityList = ["endpoint","page","identifier"];
+
+    /**
+     * A boolean flag to enable or disable the filter usage for endpoint responses
+     */
+    CCStoreConfiguration.prototype.filterEnabled = false;
+    
+    /**
+     * A boolean flag to enable or disable the prioritized loading feature in store front
+     */
+    CCStoreConfiguration.prototype.enablePrioritizedLoading = (window.clientConfigData &amp;&amp; window.clientConfigData.prioritizedLoading &amp;&amp; window.clientConfigData.prioritizedLoading == "true")?true:false;
+
+    CCStoreConfiguration.prototype.batchSizeForProdAndSkuData = 200;
+
+    CCStoreConfiguration.prototype.threshholdSizeForStockStatusData = 200;
+
+    /**
+     * A boolean flag to enable or disable the functionality of resetting shipping group relationship on cart update
+     */
+    CCStoreConfiguration.prototype.resetShippingGroupRelationships = true;
+
+    /**
+     * A boolean flag to allow site switching on production
+     */
+    CCStoreConfiguration.prototype.allowSiteSwitchingOnProduction = ko.observable(false);
+
+    /**
+    * A boolean flag to give option to skip loading product types on PLP and getting it on PDP
+    */
+      
+    CCStoreConfiguration.prototype.skipLoadingProductTypes = (window.clientConfigData &amp;&amp; window.clientConfigData.skipLoadingProductTypes &amp;&amp; window.clientConfigData.skipLoadingProductTypes == "true")?true:false;
+    
+    /**   
+     * A boolean flag to enable or disable lazy loading of images in store front
+     */
+    CCStoreConfiguration.prototype.lazilyLoadImages = (window.clientConfigData &amp;&amp; window.clientConfigData.loadImagesLazily &amp;&amp; window.clientConfigData.loadImagesLazily == "true")?true:false;
+
+    /**
+     * The delay in seconds before loading out-of-focus images on the page
+     */
+    CCStoreConfiguration.prototype.delayBeforeLoadingOutOfFocusImages =
+      (window.clientConfigData &amp;&amp; window.clientConfigData.delayBeforeLoadingOutOfFocusImages)
+        ? Number(window.clientConfigData.delayBeforeLoadingOutOfFocusImages) : -1;
+
+    /**
+     * This flag to enables cart to be transient and not to be persisted on server
+     */
+    CCStoreConfiguration.prototype.transientCartEnabled = ko.observable(false);
+
+     /* Method to get the filter key based on the context passed as a parameter.
+     * The context is expected to have "endpoint","currentPage" and an "identifier".
+     * The unique combination endpoint+currentPage+identifier will help to locate
+     * the filterKey that will be returned from this function.
+     * An additional parameter overrideFilterUsage that can be used to override
+     * the enable flag for this function call
+     * @param {Object} pContext - Object that has context data, corresponding to which
+     *        filterKey will be returned
+     * @return filterKey {String} The key to be used for the passed context object.
+     */
+    CCStoreConfiguration.prototype.getFilterToUse = function (pContext) {
+      var self = this;
+      if (self.filterEnabled) {
+        if (null != pContext &amp;&amp; pContext.constructor === Object) {
+          var contextRemaining = Object.keys(pContext).length;
+          var parentData = self.filterMap;
+          var key="";
+          var keyData = null;
+          for (var i = 0; i &lt; self.priorityList.length; i++) {
+            key = self.priorityList[i];
+            if (pContext[key]) {
+              contextRemaining--;
+              keyData = parentData[pContext[key]];
+              // If all the keys of contextData has been used, and we have a key, return the key
+              if (null != keyData &amp;&amp; keyData.constructor === Object &amp;&amp; keyData["ccFilterConfigKey"]
+              &amp;&amp; contextRemaining == 0) {
+                return keyData["ccFilterConfigKey"];
+              } else if (null != keyData &amp;&amp; keyData.constructor === Object) {
+                parentData = keyData;
+              } else if (null == keyData &amp;&amp; parentData["default"]) {
+                // If keyData is null, but we have default at parentLevel, go to default node.
+                keyData = parentData["default"];
+                // If all the keys of contextData has been used, and we have a key, return the key
+                if (keyData.constructor === Object &amp;&amp; keyData["ccFilterConfigKey"] &amp;&amp; contextRemaining == 0) {
+                  return keyData["ccFilterConfigKey"];
+                } else if (keyData.constructor === Object) {
+                  parentData = keyData;
+                } else if ((null == keyData || contextRemaining == 0) &amp;&amp; parentData["ccFilterConfigKey"]) {
+                  // If the list has been exhausted, and we have a key at parentLevel, return the key.
+                  return parentData["ccFilterConfigKey"];
+                } else {
+                  // If contextData couldn't point to a key, return null
+                  return null;
+                }
+              } else if ((null == keyData || contextRemaining == 0) &amp;&amp; parentData["ccFilterConfigKey"]) {
+                // If the list has been exhausted, and we have a key at parentLevel, return the key.
+                return parentData["ccFilterConfigKey"];
+              } else {
+                // If contextData couldn't point to a key, return null
+                return null;
+              }
+            }
+          }
+          // If the priorityList has ended, and no key is returned. Return the filterKey at this level, if exists.
+          if (null != keyData &amp;&amp; keyData.constructor === Object &amp;&amp; keyData["ccFilterConfigKey"]) {
+            return keyData["ccFilterConfigKey"];
+          }
+        }
+      }
+      return null;
+    };
+
+    /**
+     * Method to enable the filter usage
+     */
+    CCStoreConfiguration.prototype.enableFilter = function () {
+      this.filterEnabled = true;
+    };
+
+    /**
+     * Method to disable the filter usage
+     */
+    CCStoreConfiguration.prototype.disableFilter = function () {
+      this.filterEnabled = false;
+    };
+
+    /**
+     * Method to add or update the filterKey corresponding to a contextKey
+     * contextKey = endpoint+currentPage+identifier
+     * @param {Object} pFilterMap - Object that will have the contextKey and its corresponding filterKey
+     */
+    CCStoreConfiguration.prototype.updateFiltersToUse = function (pFilterMap) {
+      var self = this;
+      if (null != pFilterMap &amp;&amp; pFilterMap.constructor === Object) {
+        var filterIdentifiers = Object.keys(pFilterMap);
+        for (var i = 0; i&lt; filterIdentifiers.length; i ++) {
+          self.filterMap[filterIdentifiers[i]] = pFilterMap[filterIdentifiers[i]];
+        }
+      }
+    };
+
+    /**
+     * Method to replace all the filterKeys, with the passed contextKey to
+     * filterKey mapped object.
+     * @param {Object} pFilterMap - Object that has contextKey mapped to its corresponding filterKey
+     */
+    CCStoreConfiguration.prototype.replaceAllFiltersToUse = function (pFilterMap) {
+      var self = this;
+      if (null != pFilterMap &amp;&amp; pFilterMap.constructor === Object) {
+        self.filterMap = pFilterMap;
+      }
+    };
+
+    /**
+     * Method to add new data to the priorityList
+     * @param {Array} pList - Data that needs to be appended to the priorityList
+     */
+    CCStoreConfiguration.prototype.addDataToPriorityList = function (pList) {
+      var self = this;
+      if (null != pList &amp;&amp; pList.constructor === Array) {
+        for(var i = 0; i &lt; pList.length; i++) {
+          self.priorityList.push(pList[i]);
+        }
+      }
+    };
+
+    /**
+     * Method to replace data of the priorityList
+     * @param {Array} pList - Data that will replace the priorityList data
+     */
+    CCStoreConfiguration.prototype.replacePriorityList = function (pList) {
+      var self = this;
+      if (null != pList &amp;&amp; pList.constructor === Array) {
+        self.priorityList = pList;
+      }
+    };
+
+    /**
+     * Array to store the layout ids rendered on the browser.
+     */
+    CCStoreConfiguration.prototype.layoutIdsRendered = [];
+
+    /**
+     * Array size for layoutIdsRendered.
+     */
+    CCStoreConfiguration.prototype.layoutsRenderedArraySize = 15;
+    
+    /**
+     * Time in seconds to not to refresh the page even though there is change
+     * in publish time.
+     */
+    
+    CCStoreConfiguration.prototype.refreshAfter = ko.observable(600);
+
+    /**
+     * To check whether its a page naviagation or refresh  
+     */
+    CCStoreConfiguration.prototype.isFreshPageLoad = undefined;
+    
+    /**
+     * Used to enable or disable passing layoutsRendered query paramater in the
+     * layout call. Enabling this will make the layout call response return from
+     * server instead of JSONStoreCache/Akamai cache. But by passing this
+     * parameter, the content size of the response significantly reduces.
+     */
+    CCStoreConfiguration.prototype.enableLayoutsRenderedForLayout = false;
+
+    /**
+     * Returns the layoutIdsRendered array.
+     */
+    CCStoreConfiguration.prototype.getLayoutIdsRendered = function () {
+      return this.layoutIdsRendered;
+    }
+
+    /**
+     * Pushes all the layouts visited by shopper in the layoutIdsRendered array.
+     * Currently we are limiting the array size to 'layoutsRenderedArraySize'
+     * so that the layout endpoint request is not too long.
+     * @param {Object} pLayout
+     *   Object that holds the layout data.
+     */
+    CCStoreConfiguration.prototype.storeLayoutIdsRendered = function (pLayout) {
+      var self = this;
+      if (pLayout &amp;&amp; pLayout.layout &amp;&amp; pLayout.layout != null &amp;&amp;
+          self.layoutIdsRendered.indexOf(pLayout.layout) == -1) {
+        if (self.layoutIdsRendered.length == self.layoutsRenderedArraySize) {
+          self.layoutIdsRendered.shift();
+        }
+        self.layoutIdsRendered.push(pLayout.layout);
+      }
+    }
+    
+    /**
+     * Used to enable or disable spinner on page load. If enabled, on every page
+     * change a spinner initiated with the spinner class is shown on the page and
+     * the complete page is made read-only.
+     */
+    CCStoreConfiguration.prototype.enableSpinnerOnPageLoad = false;
+
+    /**
+     * Used to enable or disable whether to discard endpoint calls responses,
+     * called from previous pages and are not relevant for the current page.
+     */
+    CCStoreConfiguration.prototype.discardPageScopedCallResponses = false;
+    
+    /**
+     * The list of page scoped calls. These are the endpoint calls that would be
+     * redundant once the current page changes. Some examples would be layout/page
+     * calls and collection/search calls for listing pages.
+     */
+    CCStoreConfiguration.prototype.pageScopedCalls = ["getlayout", "getPage", "getCollection", "search"];
+    
+    /**
+     * Gets the list of all the page scoped calls. It might be better to use this
+     * rather than the variable call since this will guarantee no changes directly. 
+     */
+    CCStoreConfiguration.prototype.getPageScopedCalls = function() {
+      return this.pageScopedCalls;
+    };
+    
+    /**
+     * Adds an array of endpoint calls that are supposed to page scoped.
+     * The input should be an array of string, each representing a call.
+     * If the call is not present in the list already, it will be added to
+     * the list.
+     */
+    CCStoreConfiguration.prototype.addPageScopedCalls = function(calls) {
+      for (var i = 0; i &lt; calls.length; i++) {
+        var call = calls[i];
+        // Check if the call already exists. If not, push it.
+        if (this.pageScopedCalls.indexOf(call) == -1) {
+          this.pageScopedCalls.push(call);
+        }
+      }
+    };
+    
+    /**
+     * Removes an array of calls that should not be in the scoped call list.
+     * The input should be an array of string, each representing a call.
+     * if the call is present in the list, it will be removed, otherwise not.
+     */
+    CCStoreConfiguration.prototype.removePageScopedCalls = function(calls) {
+      for (var i = 0; i &lt; calls.length; i++) {
+        var call = calls[i];
+        var index = this.pageScopedCalls.indexOf(call);
+        if (index > -1) {
+          this.pageScopedCalls.splice(index, 1);
+        }
+      }
+    };
+
+    /**
+     * Used to enable or disable whether to queue simultaneous calls
+     * that do not wait for response of the previous calls.
+     */
+    CCStoreConfiguration.prototype.enableQueueingSimultaneousCalls = false;
+    
+    /**
+     * Using addQueueableCalls, add the endpoint ids in this array, 
+     * for which you want the queuing to be enabled. 
+     * Example: ["updateCurrentProfileOrder", "priceOrder"]
+     */
+    CCStoreConfiguration.prototype.queueableCalls = [];
+    
+    /**
+     * Gets the list of all the queueable calls. It might be better to use this
+     * rather than the variable call since this will guarantee no changes directly. 
+     */
+    CCStoreConfiguration.prototype.getQueueableCalls = function() {
+      return this.queueableCalls;
+    };
+    
+    /**
+     * Adds an array of endpoint calls that are supposed to queueable.
+     * The input should be an array of string, each representing a call.
+     * If the call is not present in the list already, it will be added to
+     * the list.
+     */
+    CCStoreConfiguration.prototype.addQueueableCalls = function(calls) {
+      for (var i = 0; i &lt; calls.length; i++) {
+        var call = calls[i];
+        // Check if the call already exists. If not, push it.
+        if (this.queueableCalls.indexOf(call) == -1) {
+          this.queueableCalls.push(call);
+        }
+      }
+    };
+    
+    /**
+     * Removes an array of calls that should not be in the queueable call list.
+     * The input should be an array of string, each representing a call.
+     * if the call is present in the list, it will be removed, otherwise not.
+     */
+    CCStoreConfiguration.prototype.removeQueueableCalls = function(calls) {
+      for (var i = 0; i &lt; calls.length; i++) {
+        var call = calls[i];
+        var index = this.queueableCalls.indexOf(call);
+        if (index > -1) {
+          this.queueableCalls.splice(index, 1);
+        }
+      }
+    };
+    /**
+     * To check whether largeCart  is switched on
+     */
+    CCStoreConfiguration.prototype.isLargeCart =function(data){
+      var self =this;
+      return self.largeCart;
+    }
+    
+    /**
+     * Method to return an instance of library.
+     * If the instance is not available, create a new instance
+     */
+    CCStoreConfiguration.getInstance = function () {
+      if (!CCStoreConfiguration.singleInstance) {
+        CCStoreConfiguration.singleInstance = new CCStoreConfiguration();
+      }
+      return CCStoreConfiguration.singleInstance;
+    };
+
+    return CCStoreConfiguration;
+  }
+);
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Index</a></h2><h3>Modules</h3><ul><li><a href="module-ccKoErrorWrapper.html">ccKoErrorWrapper</a></li><li><a href="module-ccKoExtensions.html">ccKoExtensions</a></li></ul><h3>Classes</h3><ul><li><a href="Address.html">Address</a></li><li><a href="CartViewModel.html">CartViewModel</a></li><li><a href="CCStoreConfiguration.html">CCStoreConfiguration</a></li><li><a href="CheckoutScheduledOrder.html">CheckoutScheduledOrder</a></li><li><a href="delegatedAdminContacts.html">delegatedAdminContacts</a></li><li><a href="DynamicProperty.html">DynamicProperty</a></li><li><a href="DynamicPropertyMetaContainer.html">DynamicPropertyMetaContainer</a></li><li><a href="EventDispatcher.html">EventDispatcher</a></li><li><a href="GiftCardViewModel.html">GiftCardViewModel</a></li><li><a href="GiftProductListingViewModel.html">GiftProductListingViewModel</a></li><li><a href="global.html#InfinityViewModel">InfinityViewModel</a></li><li><a href="IntegrationViewModel.html">IntegrationViewModel</a></li><li><a href="ko.bindingHandlers.background.html">background</a></li><li><a href="ko.bindingHandlers.carouselSwipe.html">carouselSwipe</a></li><li><a href="ko.bindingHandlers.ccDateTime.html">ccDateTime</a></li><li><a href="ko.bindingHandlers.ccForm.html">ccForm</a></li><li><a href="ko.bindingHandlers.ccLink.html">ccLink</a></li><li><a href="ko.bindingHandlers.ccValidation.html">ccValidation</a></li><li><a href="ko.bindingHandlers.checkbox.html">checkbox</a></li><li><a href="ko.bindingHandlers.chosen.html">chosen</a></li><li><a href="ko.bindingHandlers.contextResourcesNamespace.html">contextResourcesNamespace</a></li><li><a href="ko.bindingHandlers.currency.html">currency</a></li><li><a href="ko.bindingHandlers.datepicker.html">datepicker</a></li><li><a href="ko.bindingHandlers.datepopover.html">datepopover</a></li><li><a href="ko.bindingHandlers.draggable.html">draggable</a></li><li><a href="ko.bindingHandlers.droppable.html">droppable</a></li><li><a href="ko.bindingHandlers.fade.html">fade</a></li><li><a href="ko.bindingHandlers.hover.html">hover</a></li><li><a href="ko.bindingHandlers.image.html">image</a></li><li><a href="ko.bindingHandlers.imageSource.html">imageSource</a></li><li><a href="ko.bindingHandlers.imageZoom.html">imageZoom</a></li><li><a href="ko.bindingHandlers.localeText.html">localeText</a></li><li><a href="ko.bindingHandlers.makeAccess.html">makeAccess</a></li><li><a href="ko.bindingHandlers.modal.html">modal</a></li><li><a href="ko.bindingHandlers.modalTabbingContraint.html">modalTabbingContraint</a></li><li><a href="ko.bindingHandlers.onRender.html">onRender</a></li><li><a href="ko.bindingHandlers.popeditor.html">popeditor</a></li><li><a href="ko.bindingHandlers.popover.html">popover</a></li><li><a href="ko.bindingHandlers.productImageSource.html">productImageSource</a></li><li><a href="ko.bindingHandlers.productVariantImageSource.html">productVariantImageSource</a></li><li><a href="ko.bindingHandlers.propertyEditor.html">propertyEditor</a></li><li><a href="ko.bindingHandlers.radio.html">radio</a></li><li><a href="ko.bindingHandlers.richTextEditor.html">richTextEditor</a></li><li><a href="ko.bindingHandlers.scrollAffix.html">scrollAffix</a></li><li><a href="ko.bindingHandlers.select2.html">select2</a></li><li><a href="ko.bindingHandlers.select2Tags.html">select2Tags</a></li><li><a href="ko.bindingHandlers.selectable.html">selectable</a></li><li><a href="ko.bindingHandlers.slide.html">slide</a></li><li><a href="ko.bindingHandlers.slider.html">slider</a></li><li><a href="ko.bindingHandlers.spectrum.html">spectrum</a></li><li><a href="ko.bindingHandlers.textCheck.html">textCheck</a></li><li><a href="ko.bindingHandlers.timepicker.html">timepicker</a></li><li><a href="ko.bindingHandlers.triggerMessage.html">triggerMessage</a></li><li><a href="ko.bindingHandlers.validatableTarget.html">validatableTarget</a></li><li><a href="ko.bindingHandlers.validatableValue.html">validatableValue</a></li><li><a href="ko.bindingHandlers.widgetLocaleText.html">widgetLocaleText</a></li><li><a href="koValidation.alphaNumeric.html">alphaNumeric</a></li><li><a href="koValidation.alphaNumericNoSpaces.html">alphaNumericNoSpaces</a></li><li><a href="koValidation.alphaNumericNoSpacesNoDashesWithSeperators.html">alphaNumericNoSpacesNoDashesWithSeperators</a></li><li><a href="koValidation.alphaNumericNoSpacesWithSeperators.html">alphaNumericNoSpacesWithSeperators</a></li><li><a href="koValidation.alphaNumericWithSeperators.html">alphaNumericWithSeperators</a></li><li><a href="koValidation.bool.html">bool</a></li><li><a href="koValidation.creditcard.html">creditcard</a></li><li><a href="koValidation.cvv.html">cvv</a></li><li><a href="koValidation.endmonth.html">endmonth</a></li><li><a href="koValidation.endyear.html">endyear</a></li><li><a href="koValidation.importFileName.html">importFileName</a></li><li><a href="koValidation.laterDate.html">laterDate</a></li><li><a href="koValidation.match.html">match</a></li><li><a href="koValidation.mediaZipFileName.html">mediaZipFileName</a></li><li><a href="koValidation.number.html">number</a></li><li><a href="koValidation.observablePattern.html">observablePattern</a></li><li><a href="koValidation.password.html">password</a></li><li><a href="koValidation.price.html">price</a></li><li><a href="koValidation.propertyIdAlreadyInUse.html">propertyIdAlreadyInUse</a></li><li><a href="koValidation.propertyNameAlreadyInUse.html">propertyNameAlreadyInUse</a></li><li><a href="koValidation.restrictSlashCharacters.html">restrictSlashCharacters</a></li><li><a href="koValidation.startmonth.html">startmonth</a></li><li><a href="koValidation.startyear.html">startyear</a></li><li><a href="koValidation.uniqueTrimmed.html">uniqueTrimmed</a></li><li><a href="koValidation.uniqueTrimmedCaseInsensitive.html">uniqueTrimmedCaseInsensitive</a></li><li><a href="koValidation.url.html">url</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.addTemplate.html">addTemplate</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.agentBar.html">agentBar</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.ccDate.html">ccDate</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.ccNumber.html">ccNumber</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.ccResizeImage.html">ccResizeImage</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.disabled.html">disabled</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.element.html">element</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.embeddedAssistance.html">embeddedAssistance</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.fireChange.html">fireChange</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.inTabFlow.html">inTabFlow</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.noIndexMeta.html">noIndexMeta</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.previewBar.html">previewBar</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.setContextVariable.html">setContextVariable</a></li><li><a href="multiCartViewModel.html">multiCartViewModel</a></li><li><a href="NavStateViewModel.html">NavStateViewModel</a></li><li><a href="OrderDetailsViewModel.html">OrderDetailsViewModel</a></li><li><a href="OrderHistoryViewModel.html">OrderHistoryViewModel</a></li><li><a href="OrdersPendingApprovalViewModel.html">OrdersPendingApprovalViewModel</a></li><li><a href="OrderViewModel.html">OrderViewModel</a></li><li><a href="Organization.html">Organization</a></li><li><a href="ParentOrganisation.html">ParentOrganisation</a></li><li><a href="ProductListingSearchViewModel.html">ProductListingSearchViewModel</a></li><li><a href="ProductListingViewModel.html">ProductListingViewModel</a></li><li><a href="ProductTypes.html">ProductTypes</a></li><li><a href="ProductViewModel.html">ProductViewModel</a></li><li><a href="PromotionUpsellContainer.html">PromotionUpsellContainer</a></li><li><a href="PubSub.topicNames.html">topicNames</a></li><li><a href="PurchaseListListingViewModel.html">PurchaseListListingViewModel</a></li><li><a href="PurchaseListViewModel.html">PurchaseListViewModel</a></li><li><a href="RegistrationRequestSearchViewModel.html">RegistrationRequestSearchViewModel</a></li><li><a href="resetCVV.html">resetCVV</a></li><li><a href="resetGiftCardPin.html">resetGiftCardPin</a></li><li><a href="resetPaymentDetails.html">resetPaymentDetails</a></li><li><a href="ReturnItem.html">ReturnItem</a></li><li><a href="ReturnViewModel.html">ReturnViewModel</a></li><li><a href="scheduledOrderList.html">scheduledOrderList</a></li><li><a href="SearchRestClient.html">SearchRestClient</a></li><li><a href="ServerData.html">ServerData</a></li><li><a href="UserViewModel.html">UserViewModel</a></li><li><a href="WidgetViewModel.html">WidgetViewModel</a></li><li><a href="WishlistContentViewModel.html">WishlistContentViewModel</a></li></ul><h3>Namespaces</h3><ul><li><a href="ko.bindingHandlers.html">bindingHandlers</a></li><li><a href="ko.extenders.html">extenders</a></li><li><a href="koValidation.html">koValidation</a></li></ul><h3>Global</h3><ul><li><a href="global.html#addItemToPurchaseList">addItemToPurchaseList</a></li><li><a href="global.html#callWidgetMethodIfApplicable">callWidgetMethodIfApplicable</a></li><li><a href="global.html#CartViewModel#deleteParticularIncompleteOrdersDeletesanincompleteorderbyorderId">CartViewModel#deleteParticularIncompleteOrdersDeletes an incomplete order by orderId</a></li><li><a href="global.html#CCEETagProcessor">CCEETagProcessor</a></li><li><a href="global.html#doesSiteExist">doesSiteExist</a></li><li><a href="global.html#fetchSkuDetailsListError">fetchSkuDetailsListError</a></li><li><a href="global.html#fetchSkuDetailsListSuccess">fetchSkuDetailsListSuccess</a></li><li><a href="global.html#formatSiteText">formatSiteText</a></li><li><a href="global.html#handleInitiateEditSuccess">handleInitiateEditSuccess</a></li><li><a href="global.html#isModified">isModified</a></li><li><a href="global.html#isValidDeterminewhetherornotthepaymentdetailsobjectisvalidbasedonthevalidityofitscomponentparts.Thiswillnotcauseerrormessagestobedisplayedforanyobservablevaluesthatareunchangedandhaveneverreceivedfocusontherelatedformfield(s).">isValidDetermine whether or not the payment details object is validbased on the validity of its component parts. This will notcause error messages to be displayed for any observable valuesthat are unchanged and have never received focus on the related form field(s).</a></li><li><a href="global.html#justFocused">justFocused</a></li><li><a href="global.html#mapProperties">mapProperties</a></li><li><a href="global.html#MENU_CLOSE_TIMEOUT">MENU_CLOSE_TIMEOUT</a></li><li><a href="global.html#populateData">populateData</a></li><li><a href="global.html#populateProductData">populateProductData</a></li><li><a href="global.html#reset">reset</a></li><li><a href="global.html#resetModified">resetModified</a></li><li><a href="global.html#Resetsstylingforthelazilyloadedimage">Resets styling for the lazily loaded image</a></li><li><a href="global.html#Setsupstylingfortheimagetobelazilyloaded">Sets up styling for the image to be lazily loaded</a></li><li><a href="global.html#ShopperContextViewModel">ShopperContextViewModel</a></li><li><a href="global.html#thelistofpropertiestoignorewhilecopyingdynamicpropertiestoaddressobject">the list of properties to ignore while copying dynamic properties to address object</a></li><li><a href="global.html#validatePaymentDetailsForceallrelevantmemberobservablestoperformtheirvalidationnow&displaytheerrors(ifany)">validatePaymentDetailsForce all relevant member observables to perform theirvalidation now & display the errors (if any)</a></li><li><a href="global.html#WidgetQueue">WidgetQueue</a></li></ul>
+</nav>
+
+<br clear="both">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.0</a> on Wed Feb 26 2020 18:22:22 GMT+0530 (IST)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

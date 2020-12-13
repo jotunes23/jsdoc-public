@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: Dynamo/Client/Store/web/store.war/shared/js/viewModels/return.js</title>
+    
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+    
+    <h1 class="page-title">Source: Dynamo/Client/Store/web/store.war/shared/js/viewModels/return.js</h1>
+    
+    
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source"><code>define(
+  //-------------------------------------------------------------------
+  // PACKAGE NAME
+  //-------------------------------------------------------------------
+  'viewModels/return',
+  //-------------------------------------------------------------------
+  // DEPENDENCIES
+  //-------------------------------------------------------------------
+
+  ['knockout', 'pubsub','ccConstants', 'CCi18n','ccRestClient','notifier','viewModels/return-item','ccStoreUtils','ccStoreConfiguration'],
+  //-------------------------------------------------------------------
+  // MODULE DEFINITION
+  //-------------------------------------------------------------------
+  
+  
+  //-------------------------------------------------------
+  // View Model
+  //-------------------------------------------------------
+
+  /**
+   * ReturnViewModel. Return view model,
+   * used while shopper initiated return.
+   * 
+   * @public
+   * @class
+   * @name ReturnViewModel
+   * 
+   * 
+   * @property {string} orderId order Id
+   * @property {Object} priceListGroup Price List Group 
+   * @property {observable&lt;object>} orderInfo Order related information
+   * @property {Object} customerDetails Customer Details
+   * @property {observable&lt;string>}  tracking number array Items containing return tracking id's;
+   * @property {string} returnLabel Return label
+   * @property {string} authorizationNumber Authorization Number
+   * @property {Object} additionalProperties additional Properties
+   
+   * @property {observable&lt;string>}  returnItemsArray Order Items containing return related information;
+   * @property {observable&lt;string>}  returnReasons Return reasons.
+   * @property {observable} refundCalculationSummary
+   * @property {observable} promotionAdjustments
+   * @property {observable&lt;String>} multiPromotionAdjustment
+   *
+   */
+  function (ko,pubsub, ccConstants, CCi18n,CCRestClient,notifier,ReturnItem,StoreUtils,StoreConfiguration) {
+    'use strict';
+    
+    function ReturnViewModel(pOrderId) {
+      var self = this;
+     // self.widget=data;
+      self.CCi18n = CCi18n;
+      self.orderInfo=ko.observable();;
+      self.orderId=pOrderId;
+      self.priceListGroup =ko.observable();
+      self.customerDetails=ko.observable();
+      self.trackingNumber=ko.observable();
+      self.returnLabel=ko.observable();
+      self.authorizationNumber=ko.observable();
+      self.additionalProperties=ko.observable();
+      self.returnItemsArray = ko.observableArray([]);
+      self.isReturnProcessInvoked = ko.observable(false);
+      self.returnReasons= ko.observable();
+      self.refundCalculationSummary = ko.observable();
+      self.promotionAdjustments = ko.observable();
+      self.multiPromotionAdjustment = ko.observableArray([]);
+      self.storeConfiguration = StoreConfiguration.getInstance();
+      //self.initiateReturnRequest(pOrderId,success,failure);
+      
+
+
+
+    }
+    
+   /**
+    * Initiates the return request for specific order.
+    * @function ReturnViewModel#initiateReturnRequest
+    * @param {integer} porderId order id of the order.
+    *  @param {function} success   success callback
+    *  @param {function} failure   failure callback
+    */
+   ReturnViewModel.prototype.initiateReturnRequest= function(porderId,success,failure){
+       var self=this;
+       var data = {};
+       data.orderId = porderId;
+       CCRestClient.request(ccConstants.ENDPOINT_INITIATE_RETURN_REQUEST, data,
+                             function(pResult){self.initiateReturnRequestSuccess(pResult,success)}.bind(self),
+                             function(pResult){self.initiateReturnRequestFailure(pResult,failure)}.bind(self));
+    },
+    
+    
+   /**
+    * 'initiate Return' success callback function.
+    * Populates the UI based on the response.
+    * @function ReturnViewModel#initiateReturnRequestSuccess
+    * @param {Object} pResult initiateReturn result object.
+    * @param {function} success   success  callback
+   */
+   ReturnViewModel.prototype.initiateReturnRequestSuccess=function(pResult,success){
+      
+     var self=this;
+     if(typeof(success) === "function"){
+       success(pResult,self);
+     }
+
+    },
+    
+    
+   /**
+    * 'initiate Return' failure callback function.
+    * Populates the UI based on the response.
+    * @function ReturnViewModel#initiateReturnRequestFailure
+    * @param {Object} pResult initiateReturn result object.
+    * @param {function} failure callback
+    */ 
+   ReturnViewModel.prototype.initiateReturnRequestFailure=function(pResult,failure){
+     var self=this;   
+     if(typeof(failure) === "function"){
+       failure(pResult,self);
+     }
+       
+   },
+   /**
+    * Adds the data to the ViewModel with the initiateReturn response.
+    * @function ReturnViewModel#populateReturnItems
+    * @param {Object} pResult initiateReturn result object.
+    */
+    
+   ReturnViewModel.prototype.populateReturnItems=function(pResult,success,failure){
+   var self=this;
+   var i,item;
+   self.orderInfo(pResult.orderInfo);
+   self.priceListGroup(pResult.orderInfo.priceListGroup);
+   self.customerDetails(pResult.profileInfo);
+   self.trackingNumber(pResult.trackingNumber);
+     self.returnLabel(pResult.returnLabel);
+     self.authorizationNumber(pResult.authorizationNumber);
+     self.additionalProperties(pResult.additionalProperties);
+   self.orderId = pResult.orderInfo.orderId;
+   
+   var productIdContainer=[];
+     var returnItems=pResult.returnItems;
+     for(i=0;i&lt;returnItems.length;i++){
+       productIdContainer.push(returnItems[i].productId)
+       
+     }
+    
+     var data = {};
+     data.productIds = productIdContainer;
+     data.showNonActive=true;
+     
+     var prodData = new Array();
+     var deferredArray = new Array();
+     var batchSize = StoreUtils.getEntityCountLimitInGetRequest(this.storeConfiguration.batchSizeForProdAndSkuData, data.productIds.length);
+     if(batchSize&lt;0) {
+       batchSize = data.productIds.length;
+     }
+     var individualInputData = Object.create(data);
+     for (var i=0; i &lt; data.productIds.length; i) {
+       var individualBatchIds = [];
+       for (var j=0; j&lt;batchSize &amp;&amp; i&lt;data.productIds.length; j++,i++) {
+         individualBatchIds.push(data.productIds[i]);
+       }
+       individualInputData.productIds = individualBatchIds;
+       deferredArray.push(self.getDataBatch(ccConstants.ENDPOINT_PRODUCTS_LIST_PRODUCTS, individualInputData));
+     }
+     $.when.apply(null, deferredArray).done(
+         function() {
+           for (var i = 0; i&lt; arguments.length; i++) {
+             var partialProd = arguments[i];
+             for (var j = 0; j &lt; partialProd.length; j++) {
+               prodData.push(partialProd[j]);
+             }
+           }
+           self.getProductInfoSuccess(prodData,returnItems,success);
+         }.bind(self)
+        ).fail(function() {
+            var errorData;
+            for (var i = 0; i&lt; arguments.length; i++) {
+              errorData = arguments[i];
+            }
+            self.getProductInfoFailure(errorData,returnItems,failure);
+          }.bind(self));
+
+   },
+
+   /**
+    * Makes a call to the endpoint specified by url, and returns the response data
+    * @function ReturnViewModel#getDataBatch
+    * @param {String} url URL for the endpoint to hit.
+    * @param {String} inputData Data to send in the endpoint request.
+    */
+   ReturnViewModel.prototype.getDataBatch = function(url, inputData) {
+     var self = this;
+     var deferredObj = $.Deferred();
+       CCRestClient.request(url,inputData,
+         function(data){
+           deferredObj.resolve(data);
+         }.bind(this),
+         function(data){
+           deferredObj.reject(data);
+         }.bind(this));
+       return deferredObj;
+   };
+   /**
+    * Invokes success callback, usually passed by the widget
+    * @function ReturnViewModel#getProductInfoSuccess
+    * @param {String} pResult
+    * @param {ReturnItemsArray} pReturnItems
+    */
+   ReturnViewModel.prototype.getProductInfoSuccess=function(pResult,pReturnItems,success){
+   var self=this;
+   if(typeof(success) === "function"){
+     success(pResult,pReturnItems);
+   }
+   },
+   /**
+    * Invokes failure callback, usually passed by the widget
+    * @function ReturnViewModel#getProductInfoFailure
+    * @param {String} pResult
+    * @param {ReturnItemsArray} pReturnItems
+    */
+   ReturnViewModel.prototype.getProductInfoFailure=function(pResult,pReturnItems,failure){
+  var self=this;
+    if(typeof(failure) === "function"){
+     failure(pResult,pReturnItems);
+
+    }
+   },
+   
+   
+   /**
+    *  Fetches the return Reasons for return.
+    * @function ReturnViewModel#submitReturnRequest
+    */
+   
+   ReturnViewModel.prototype.getReturnReason=function(success,failure){
+     var self=this;
+     var data={};
+     
+     CCRestClient.request(ccConstants.ENDPOINT_MERCHANT_RETURN_REASONS,data,
+             function(pResult){self.getReturnReasonSuccess(pResult,success)}.bind(self),
+             function(pResult){self.getReturnReasonFailure(pResult,success)}.bind(self));
+   },
+   
+   /**
+    * Populates returnReasons of the viewModel and invokes success callback
+    * @function ReturnViewModel#getReturnReasonSuccess
+    */
+   ReturnViewModel.prototype.getReturnReasonSuccess=function(pResult,success){
+     var self= this;
+     if(CCRestClient.profileType == ccConstants.PROFILE_TYPE_AGENT){
+       self.returnReasons(pResult);
+     }else{
+   self.returnReasons(pResult.items);
+     }
+   if(typeof(success) === "function"){
+     success(pResult.items);
+   }
+     
+   },
+   /**
+    * Invokes failure callback
+    * @function ReturnViewModel#getReturnReasonFailure
+    */
+   ReturnViewModel.prototype.getReturnReasonFailure=function(pResult,failure){
+  var self=this;
+  if(typeof(failure) === "function"){
+      failure(pResult);
+  }   
+   },
+   
+   /**
+    * Constructs returnItems and returns an array of returnItems
+    * @function ReturnViewModel#constructReturnItems
+    * @param {JSON} pItems
+    */
+   ReturnViewModel.prototype.constructReturnItems = function(pItems){
+     var self=this;  
+   var i,itemsToSubmit=[];
+   for(i=0;i&lt;pItems.length;i++){
+     var returnItems ={};
+     returnItems.productId=pItems[i].productId;
+     returnItems.catRefId=pItems[i].catRefId;
+     returnItems.commerceItemId=pItems[i].commerceItemId;
+       returnItems.quantityToReturn=parseInt(pItems[i].selectedQuantity());
+     returnItems.returnReason=pItems[i].selectedReason().displayKey;  
+     returnItems.shippingGroupId=pItems[i].shippingGroup.shippingGroupId;  
+     itemsToSubmit.push(returnItems);
+         
+   }
+   return itemsToSubmit;
+  },
+     
+  /**
+   * Submits the return request.
+   * @function ReturnViewModel#submitReturnRequest
+   *  @param {function} success   success callback
+   *  @param {function} failure   failure callback
+   */    
+   ReturnViewModel.prototype.submitReturnRequest=function(success,failure){
+     var self = this;
+     var itemsToSubmit = self.getReturnItems();
+
+     var data={};
+     data.returnItems=itemsToSubmit;
+     data.orderId=self.orderId;;
+     CCRestClient.request(ccConstants.ENDPOINT_SUBMIT_RETURN_REQUEST, data,
+        function(pResult){self.submitReturnRequestSuccess(pResult,success)}.bind(self),
+        function(pResult){self.submitReturnRequestFailure(pResult,failure)}.bind(self));
+     
+     
+   },
+   
+   /**
+    * Calculates the refund summary based on items selected for return.
+    * @function ReturnViewModel#calculateRefundSummary
+    *  @param {function} success   success callback
+    *  @param {function} failure   failure callback
+    */
+    ReturnViewModel.prototype.calculateRefundSummary=function(success,failure){
+      var self = this;
+      var itemsToSubmit = self.getReturnItems();
+
+      var data={};
+      data[ccConstants.ORDER_ID] = self.orderId;
+      data.returnItems=itemsToSubmit;
+
+      var calculateRefundSummarySuccess = function (pResult, success) {
+        if(pResult.promotionAdjustments) {
+          self.promotionAdjustments(pResult.promotionAdjustments);
+          self.populateMultiPromotions();
+        }
+        self.refundCalculationSummary(pResult.refundInfo);
+
+               for (var returnItemsIndex = 0; returnItemsIndex &lt; pResult.returnItems.length; returnItemsIndex++) {
+                 for (var index = 0; index &lt; self.returnItemsArray().length; index++ ) {
+                   if (pResult.returnItems[returnItemsIndex].catRefId === self.returnItemsArray()[index].catRefId
+                           &amp;&amp; pResult.returnItems[returnItemsIndex].commerceItemId === self.returnItemsArray()[index].commerceItemId
+                           &amp;&amp; pResult.returnItems[returnItemsIndex].shippingGroup.shippingGroupId  === self.returnItemsArray()[index].shippingGroup.shippingGroupId ) {
+                     var returnItem = self.returnItemsArray()[index];
+                     returnItem.suggestedRefundAmount = pResult.returnItems[returnItemsIndex].suggestedRefundAmount;
+                     returnItem.promotionAdjustments(pResult.returnItems[returnItemsIndex].promotionAdjustments);
+                     returnItem.adjustedPromotionReferences(pResult.returnItems[returnItemsIndex].adjustedPromotionReferences);
+                     returnItem.unAdjustedRefundAmount(pResult.returnItems[returnItemsIndex].unAdjustedRefundAmount);
+                     break;
+                   }
+                 }
+               }
+               if(typeof(success) === "function"){
+                 success(pResult);
+               }
+           }
+
+         var calculateRefundSummaryFailure = function(pResult,failure){
+           var self=this;
+           if(typeof(failure) === "function"){
+             failure(pResult);
+           }
+         }
+
+      CCRestClient.request(ccConstants.ENDPOINT_CALCULATE_REFUND, data,
+      function(pResult){calculateRefundSummarySuccess(pResult,success)},
+      function(pResult){calculateRefundSummaryFailure(pResult,failure)});
+
+    },
+
+    /**
+     * This method populates the multiPromotionAdjument Map,
+     *  which considers the manyToManyPromotionCouponAdjustment map
+     *  returned in RR response
+     */
+    ReturnViewModel.prototype.populateMultiPromotions = function() {
+      var self = this;
+      var couponMap = self.promotionAdjustments().manyToManyPromotionCouponAdjustment;
+      if(self.multiPromotionAdjustment()) {
+        self.multiPromotionAdjustment([]);
+      }
+      if(couponMap) {
+        for(var property in couponMap) {
+          if(couponMap.hasOwnProperty(property)) {
+            couponMap[property].code = property;
+            self.multiPromotionAdjustment.push(couponMap[property]);
+          }
+        }
+      }
+    },
+
+    /**
+     * This method returns the items to submit
+     * based on the items selected for return
+     */
+    ReturnViewModel.prototype.getReturnItems = function() {
+        var self = this;
+        var items=self.returnItemsArray();
+        var i,selectedToReturnArray=[];
+
+        for(i=0;i&lt;items.length;i++){
+          if(!items[i].nonreturnable &amp;&amp; items[i].isValid()){
+            selectedToReturnArray.push(items[i]);
+          }
+        }
+
+        return self.constructReturnItems(selectedToReturnArray);;
+    },
+
+   /**
+    * 'createReturnRequest' success callback function.
+    * Displays the success notification and publishes NEW_RETURN_REQUEST event.
+    * @function ReturnViewModel#submitReturnRequestSuccess
+    * @param {Object} pResult createReturnRequest result object.
+    * @param {function} success   success  callback
+   */
+   ReturnViewModel.prototype.submitReturnRequestSuccess=function(pResult,success){
+   var self=this;  
+     if(typeof(success) === "function"){
+     success(pResult,self);
+   }
+   },
+   
+   /**
+    * 'createReturnRequest' failure callback function.
+    * Displays the error notification.
+    * @function ReturnViewModel#submitReturnRequestFailure
+    * @param {Object} pResult createReturnRequest result object.
+    * @param {function} failure callback
+    */
+   ReturnViewModel.prototype.submitReturnRequestFailure=function(pResult,failure){
+   var self=this;
+     if(typeof(failure) === "function"){
+     failure(pResult,self);
+   }
+   }
+   
+
+
+    return ReturnViewModel;
+    
+    
+});</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Index</a></h2><h3>Modules</h3><ul><li><a href="module-ccKoErrorWrapper.html">ccKoErrorWrapper</a></li><li><a href="module-ccKoExtensions.html">ccKoExtensions</a></li></ul><h3>Classes</h3><ul><li><a href="Address.html">Address</a></li><li><a href="CartViewModel.html">CartViewModel</a></li><li><a href="CCStoreConfiguration.html">CCStoreConfiguration</a></li><li><a href="CheckoutScheduledOrder.html">CheckoutScheduledOrder</a></li><li><a href="delegatedAdminContacts.html">delegatedAdminContacts</a></li><li><a href="DynamicProperty.html">DynamicProperty</a></li><li><a href="DynamicPropertyMetaContainer.html">DynamicPropertyMetaContainer</a></li><li><a href="EventDispatcher.html">EventDispatcher</a></li><li><a href="GiftCardViewModel.html">GiftCardViewModel</a></li><li><a href="GiftProductListingViewModel.html">GiftProductListingViewModel</a></li><li><a href="global.html#InfinityViewModel">InfinityViewModel</a></li><li><a href="IntegrationViewModel.html">IntegrationViewModel</a></li><li><a href="ko.bindingHandlers.background.html">background</a></li><li><a href="ko.bindingHandlers.carouselSwipe.html">carouselSwipe</a></li><li><a href="ko.bindingHandlers.ccDateTime.html">ccDateTime</a></li><li><a href="ko.bindingHandlers.ccForm.html">ccForm</a></li><li><a href="ko.bindingHandlers.ccLink.html">ccLink</a></li><li><a href="ko.bindingHandlers.ccValidation.html">ccValidation</a></li><li><a href="ko.bindingHandlers.checkbox.html">checkbox</a></li><li><a href="ko.bindingHandlers.chosen.html">chosen</a></li><li><a href="ko.bindingHandlers.contextResourcesNamespace.html">contextResourcesNamespace</a></li><li><a href="ko.bindingHandlers.currency.html">currency</a></li><li><a href="ko.bindingHandlers.datepicker.html">datepicker</a></li><li><a href="ko.bindingHandlers.datepopover.html">datepopover</a></li><li><a href="ko.bindingHandlers.draggable.html">draggable</a></li><li><a href="ko.bindingHandlers.droppable.html">droppable</a></li><li><a href="ko.bindingHandlers.fade.html">fade</a></li><li><a href="ko.bindingHandlers.hover.html">hover</a></li><li><a href="ko.bindingHandlers.image.html">image</a></li><li><a href="ko.bindingHandlers.imageSource.html">imageSource</a></li><li><a href="ko.bindingHandlers.imageZoom.html">imageZoom</a></li><li><a href="ko.bindingHandlers.localeText.html">localeText</a></li><li><a href="ko.bindingHandlers.makeAccess.html">makeAccess</a></li><li><a href="ko.bindingHandlers.modal.html">modal</a></li><li><a href="ko.bindingHandlers.modalTabbingContraint.html">modalTabbingContraint</a></li><li><a href="ko.bindingHandlers.onRender.html">onRender</a></li><li><a href="ko.bindingHandlers.popeditor.html">popeditor</a></li><li><a href="ko.bindingHandlers.popover.html">popover</a></li><li><a href="ko.bindingHandlers.productImageSource.html">productImageSource</a></li><li><a href="ko.bindingHandlers.productVariantImageSource.html">productVariantImageSource</a></li><li><a href="ko.bindingHandlers.propertyEditor.html">propertyEditor</a></li><li><a href="ko.bindingHandlers.radio.html">radio</a></li><li><a href="ko.bindingHandlers.richTextEditor.html">richTextEditor</a></li><li><a href="ko.bindingHandlers.scrollAffix.html">scrollAffix</a></li><li><a href="ko.bindingHandlers.select2.html">select2</a></li><li><a href="ko.bindingHandlers.select2Tags.html">select2Tags</a></li><li><a href="ko.bindingHandlers.selectable.html">selectable</a></li><li><a href="ko.bindingHandlers.slide.html">slide</a></li><li><a href="ko.bindingHandlers.slider.html">slider</a></li><li><a href="ko.bindingHandlers.spectrum.html">spectrum</a></li><li><a href="ko.bindingHandlers.textCheck.html">textCheck</a></li><li><a href="ko.bindingHandlers.timepicker.html">timepicker</a></li><li><a href="ko.bindingHandlers.triggerMessage.html">triggerMessage</a></li><li><a href="ko.bindingHandlers.validatableTarget.html">validatableTarget</a></li><li><a href="ko.bindingHandlers.validatableValue.html">validatableValue</a></li><li><a href="ko.bindingHandlers.widgetLocaleText.html">widgetLocaleText</a></li><li><a href="koValidation.alphaNumeric.html">alphaNumeric</a></li><li><a href="koValidation.alphaNumericNoSpaces.html">alphaNumericNoSpaces</a></li><li><a href="koValidation.alphaNumericNoSpacesNoDashesWithSeperators.html">alphaNumericNoSpacesNoDashesWithSeperators</a></li><li><a href="koValidation.alphaNumericNoSpacesWithSeperators.html">alphaNumericNoSpacesWithSeperators</a></li><li><a href="koValidation.alphaNumericWithSeperators.html">alphaNumericWithSeperators</a></li><li><a href="koValidation.bool.html">bool</a></li><li><a href="koValidation.creditcard.html">creditcard</a></li><li><a href="koValidation.cvv.html">cvv</a></li><li><a href="koValidation.endmonth.html">endmonth</a></li><li><a href="koValidation.endyear.html">endyear</a></li><li><a href="koValidation.importFileName.html">importFileName</a></li><li><a href="koValidation.laterDate.html">laterDate</a></li><li><a href="koValidation.match.html">match</a></li><li><a href="koValidation.mediaZipFileName.html">mediaZipFileName</a></li><li><a href="koValidation.number.html">number</a></li><li><a href="koValidation.observablePattern.html">observablePattern</a></li><li><a href="koValidation.password.html">password</a></li><li><a href="koValidation.price.html">price</a></li><li><a href="koValidation.propertyIdAlreadyInUse.html">propertyIdAlreadyInUse</a></li><li><a href="koValidation.propertyNameAlreadyInUse.html">propertyNameAlreadyInUse</a></li><li><a href="koValidation.restrictSlashCharacters.html">restrictSlashCharacters</a></li><li><a href="koValidation.startmonth.html">startmonth</a></li><li><a href="koValidation.startyear.html">startyear</a></li><li><a href="koValidation.uniqueTrimmed.html">uniqueTrimmed</a></li><li><a href="koValidation.uniqueTrimmedCaseInsensitive.html">uniqueTrimmedCaseInsensitive</a></li><li><a href="koValidation.url.html">url</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.addTemplate.html">addTemplate</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.agentBar.html">agentBar</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.ccDate.html">ccDate</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.ccNumber.html">ccNumber</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.ccResizeImage.html">ccResizeImage</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.disabled.html">disabled</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.element.html">element</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.embeddedAssistance.html">embeddedAssistance</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.fireChange.html">fireChange</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.inTabFlow.html">inTabFlow</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.noIndexMeta.html">noIndexMeta</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.previewBar.html">previewBar</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.setContextVariable.html">setContextVariable</a></li><li><a href="multiCartViewModel.html">multiCartViewModel</a></li><li><a href="NavStateViewModel.html">NavStateViewModel</a></li><li><a href="OrderDetailsViewModel.html">OrderDetailsViewModel</a></li><li><a href="OrderHistoryViewModel.html">OrderHistoryViewModel</a></li><li><a href="OrdersPendingApprovalViewModel.html">OrdersPendingApprovalViewModel</a></li><li><a href="OrderViewModel.html">OrderViewModel</a></li><li><a href="Organization.html">Organization</a></li><li><a href="ParentOrganisation.html">ParentOrganisation</a></li><li><a href="ProductListingSearchViewModel.html">ProductListingSearchViewModel</a></li><li><a href="ProductListingViewModel.html">ProductListingViewModel</a></li><li><a href="ProductTypes.html">ProductTypes</a></li><li><a href="ProductViewModel.html">ProductViewModel</a></li><li><a href="PromotionUpsellContainer.html">PromotionUpsellContainer</a></li><li><a href="PubSub.topicNames.html">topicNames</a></li><li><a href="PurchaseListListingViewModel.html">PurchaseListListingViewModel</a></li><li><a href="PurchaseListViewModel.html">PurchaseListViewModel</a></li><li><a href="RegistrationRequestSearchViewModel.html">RegistrationRequestSearchViewModel</a></li><li><a href="resetCVV.html">resetCVV</a></li><li><a href="resetGiftCardPin.html">resetGiftCardPin</a></li><li><a href="resetPaymentDetails.html">resetPaymentDetails</a></li><li><a href="ReturnItem.html">ReturnItem</a></li><li><a href="ReturnViewModel.html">ReturnViewModel</a></li><li><a href="scheduledOrderList.html">scheduledOrderList</a></li><li><a href="SearchRestClient.html">SearchRestClient</a></li><li><a href="ServerData.html">ServerData</a></li><li><a href="UserViewModel.html">UserViewModel</a></li><li><a href="WidgetViewModel.html">WidgetViewModel</a></li><li><a href="WishlistContentViewModel.html">WishlistContentViewModel</a></li></ul><h3>Namespaces</h3><ul><li><a href="ko.bindingHandlers.html">bindingHandlers</a></li><li><a href="ko.extenders.html">extenders</a></li><li><a href="koValidation.html">koValidation</a></li></ul><h3>Global</h3><ul><li><a href="global.html#addItemToPurchaseList">addItemToPurchaseList</a></li><li><a href="global.html#callWidgetMethodIfApplicable">callWidgetMethodIfApplicable</a></li><li><a href="global.html#CartViewModel#deleteParticularIncompleteOrdersDeletesanincompleteorderbyorderId">CartViewModel#deleteParticularIncompleteOrdersDeletes an incomplete order by orderId</a></li><li><a href="global.html#CCEETagProcessor">CCEETagProcessor</a></li><li><a href="global.html#doesSiteExist">doesSiteExist</a></li><li><a href="global.html#fetchSkuDetailsListError">fetchSkuDetailsListError</a></li><li><a href="global.html#fetchSkuDetailsListSuccess">fetchSkuDetailsListSuccess</a></li><li><a href="global.html#formatSiteText">formatSiteText</a></li><li><a href="global.html#handleInitiateEditSuccess">handleInitiateEditSuccess</a></li><li><a href="global.html#isModified">isModified</a></li><li><a href="global.html#isValidDeterminewhetherornotthepaymentdetailsobjectisvalidbasedonthevalidityofitscomponentparts.Thiswillnotcauseerrormessagestobedisplayedforanyobservablevaluesthatareunchangedandhaveneverreceivedfocusontherelatedformfield(s).">isValidDetermine whether or not the payment details object is validbased on the validity of its component parts. This will notcause error messages to be displayed for any observable valuesthat are unchanged and have never received focus on the related form field(s).</a></li><li><a href="global.html#justFocused">justFocused</a></li><li><a href="global.html#mapProperties">mapProperties</a></li><li><a href="global.html#MENU_CLOSE_TIMEOUT">MENU_CLOSE_TIMEOUT</a></li><li><a href="global.html#populateData">populateData</a></li><li><a href="global.html#populateProductData">populateProductData</a></li><li><a href="global.html#reset">reset</a></li><li><a href="global.html#resetModified">resetModified</a></li><li><a href="global.html#Resetsstylingforthelazilyloadedimage">Resets styling for the lazily loaded image</a></li><li><a href="global.html#Setsupstylingfortheimagetobelazilyloaded">Sets up styling for the image to be lazily loaded</a></li><li><a href="global.html#ShopperContextViewModel">ShopperContextViewModel</a></li><li><a href="global.html#thelistofpropertiestoignorewhilecopyingdynamicpropertiestoaddressobject">the list of properties to ignore while copying dynamic properties to address object</a></li><li><a href="global.html#validatePaymentDetailsForceallrelevantmemberobservablestoperformtheirvalidationnow&displaytheerrors(ifany)">validatePaymentDetailsForce all relevant member observables to perform theirvalidation now & display the errors (if any)</a></li><li><a href="global.html#WidgetQueue">WidgetQueue</a></li></ul>
+</nav>
+
+<br clear="both">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.0</a> on Wed Feb 26 2020 18:22:22 GMT+0530 (IST)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

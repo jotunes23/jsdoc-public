@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: Dynamo/Client/Store/web/store.war/shared/js/viewModels/cart-item.js</title>
+    
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+    
+    <h1 class="page-title">Source: Dynamo/Client/Store/web/store.war/shared/js/viewModels/cart-item.js</h1>
+    
+    
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source"><code>/**
+ * @fileoverview Defines a CartItem of the cart.
+ */
+
+/*global define */
+define(function (require) {
+    'use strict';
+
+    var ko = require('knockout');
+    var pubsub = require('pubsub');
+    var CCi18n = require('CCi18n');
+    var $ = require('jquery');
+    var ccConstants = require('ccConstants');
+    var SiteViewModel = require('pageLayout/site');
+    var currencyHelper = require('currencyHelper');
+    var koMapping = require('koMapping');
+    var ShippingGroupRelationship = require('viewModels/shipping-group-relationship');
+    var CartItemExternalData = require('viewModels/cart-item-external-data');
+    var CCStoreConfiguration = require('ccStoreConfiguration');
+    var Address = require('viewModels/address');
+    var cartUpdateQuantitySubscription = null;
+    var ccRestClient = require('ccRestClient');
+    var CCDate = require('ccDate');
+
+    /**
+     * Map the legacy CartItem argument signature (individual argument list), to the new CartItem argument signature (a 
+     * single config object).
+     * 
+     * @private
+     */
+    function argumentsToConfig () {
+      return {
+        productId: arguments[0],
+        productData: arguments[1],
+        quantity: arguments[2],
+        catRefId: arguments[3],
+        selectedOptions: arguments[4],
+        currency: arguments[5],
+        discountInfo: arguments[6],
+        rawTotalPrice: arguments[7], 
+        externalPrice: arguments[8],
+        externalPriceQuantity: arguments[9],
+        configuratorId: arguments[10],
+        childItems: arguments[11],
+        commerceItemId: arguments[12],
+        unpricedExternalMessage: arguments[13],
+        externalData: arguments[14],
+        actionCode: arguments[15],
+        lineAttributes: arguments[16],
+        backOrderQuantity: arguments[17],
+        preOrderQuantity: arguments[18],
+        externalRecurringCharge: arguments[19],
+        externalRecurringChargeFrequency: arguments[20],
+        externalRecurringChargeDuration: arguments[21],
+        addOnItem: arguments[22],
+        shopperInput: arguments[23],
+        configurablePropertyId: arguments[24],
+        configurationOptionId: arguments[25],
+        selectedStore: arguments[26],
+        shippingGroupRelationships: arguments[27]
+      };
+    }
+
+    /**
+     * The CartItem (view model) class is the client representation of a Commerce Item.
+     *
+     * @class
+     * @param {Object} config The initial data from which to initialize the CartItem properties.
+     * @property {string} productID Product ID of the current item
+     * @property {observable&lt;Object>} productData Product Data associated wtih the current item
+     * @property {observable&lt;number>} quantity the number of items
+     * @property {string} catRefId SKU id of the item
+     * @property {observable&lt;number>} itemTotal Total cost of the item.
+     * @property {observable&lt;boolean>} stockStatus Whether the item is current available.
+     * @property {observable&lt;number>} updatableQuantity The number of items actually available to purchase after 
+     *    adjustments to stock level.
+     * @property {observable&lt;number>} rawTotalPrice
+     * @property {observableArray&lt;ShippingGroupRelationship>} shippingGroupRelationships The collection of 
+     *    ShippingGroupRelationships instances for a this cart item. By default, there is one 
+     *    ShippingGroupRelationship instance per cart items, meaning that each cart item will be associated to at 
+     *    least one shipping group. 
+     * @property {string} configuratorId the configurator id needed for reconfiguration and price calculation for 
+     *    configurable items.
+     * @property {CartItem[]} childItems the array of child items.
+     * @property {string} commerceItemId the commerce item id for the item.
+     * @property {observableArray&lt;CartItemExternalData>} externalData - The list of dynamic externalData associated
+     *    with this cart item.
+     * @property {observable&lt;string>} actionCode - The action code associated with the cart item.
+     * @property {observable&lt;string>} externalRecurringCharge - The recurring charge value e.g. "10.00".
+     * @property {observable&lt;string>} externalRecurringChargeFrequency - The frequency of the recurring charge e.g. "Monthly".
+     * @property {observable&lt;string>} externalRecurringChargeDuration - The duration of the recurring charge e.g. "12 months".
+     * @property {observableArray&lt;DynamicProperty>} lineAttributes the array of dynamicProperty Objects for commerceItem.
+     * @property {observable&lt;number>} backOrderableQuantity the number of items backordered
+     * @property {observable&lt;number>} preOrderableQuantity the number of items preordered
+     * @property {boolean} addOnItem Flag to indicate if the cart item coresponds to a add-on product
+     * @property {array} shopperInput The ShopperInputs array
+     * @property {string} configurablePropertyId The id of ConfigurableProperty
+     * @property {string} configurationOptionId The id of ConfigurationOption
+     * @property {observable&lt;double>} overriddenPrice - The overridden price with the cart item.
+     * @property {observable&lt;string>} priceOverrideReason - The reason for overriding the part of the cart item.
+     * @property {observable&lt;string>} discountAmount - The item level discount amount.
+     * @property {observable&lt;boolean>} isPriceOverridden - To signify whether the cart-item is overridden or not.
+     * @property {observable&lt;boolean>} isUpdate - To signify whether the cart-item is being updated or added. Use-case:
+     *      In agent we can update the cart-item by clicking on its link/image in shopping-cart.
+     * @property {observable&lt;boolean>} asset - To signify whether the cart-item is an asset or a new configurable item.
+     */
+    function CartItem (config) { 
+      var self = this;
+
+      // If the method was called using the old argument signature, i.e. list of arguments instead of a single 
+      // config object.
+      if (arguments.length > 1 &amp;&amp; typeof arguments[0] !== 'object') {
+        // Map legacy arguments to config object.
+        return CartItem.call(this, argumentsToConfig.apply(undefined, arguments));
+      }
+
+      var original
+      // Default args.
+
+      config = config || {};
+      var externalData = config.externalData || [];
+      var productData = config.productData || {};
+
+      // Properties.
+
+      self.productId = config.productId;
+      self.productData = ko.observable(config.productData);
+      self.quantity = ko.observable(config.quantity);
+      self.repositoryId = "";
+      self.availabilityDate = ko.observable(productData.availabilityDate || null);
+      self.catRefId = config.catRefId;
+      self.itemTotal = ko.observable(0);
+      self.expanded = ko.observable(false);
+      self.stockStatus = ko.observable(true);
+      self.stockState = ko.observable(productData.stockState || '');
+      self.orderableQuantityMessage = ko.observable();
+      self.updatableQuantity = ko.observable(config.quantity);
+      self.commerceItemQuantity = ko.observable(config.quantity);
+      self.orderableQuantity = ko.observable();
+      self.backOrderableQuantity = ko.observable(config.backOrderQuantity);
+      self.preOrderableQuantity = ko.observable(config.preOrderQuantity);
+      self.selectedOptions = config.selectedOptions;
+      self.selectedSkuProperties = [];
+      self.discountInfo = ko.observable(config.discountInfo);
+      self.rawTotalPrice = ko.observable(config.rawTotalPrice);
+      self.detailedItemPriceInfo = ko.observableArray();
+      self.detailedRecurringChargeInfo = ko.observableArray();
+      //Price override fields
+      self.overriddenPrice = ko.observable();
+      self.priceOverrideReason = ko.observable();
+      self.discountAmount = ko.observable(0);
+      self.isPriceOverridden = ko.observable();
+
+      self.isUpdate = ko.observable(false);
+
+      self.externalPrice = ko.observable(config.externalPrice);
+      self.externalPriceQuantity = ko.observable(config.externalPriceQuantity);
+      self.processed = false;
+      self.externalData = ko.observableArray(externalData.map(function (data) {
+        return new CartItemExternalData(data);
+      }));
+      self.addOnItem = false;
+      if(config.addOnItem) {
+        self.addOnItem = config.addOnItem;
+      }
+      self.shopperInput = undefined;
+      if(config.shopperInput) {
+        self.shopperInput = config.shopperInput;
+      }
+      self.configurablePropertyId = undefined;
+      if(config.configurablePropertyId) {
+        self.configurablePropertyId = config.configurablePropertyId;
+      }
+      self.configurationOptionId = undefined;
+      if(config.configurationOptionId) {
+        self.configurationOptionId = config.configurationOptionId;
+      }
+      self.actionCode = ko.observable(config.actionCode);
+      self.externalRecurringCharge = ko.observable(config.externalRecurringCharge);
+      self.externalRecurringChargeFrequency = ko.observable(config.externalRecurringChargeFrequency);
+      self.externalRecurringChargeDuration = ko.observable(config.externalRecurringChargeDuration);
+      self.assetKey = ko.observable(config.assetKey);
+      self.rootAssetKey = ko.observable(config.rootAssetKey);
+      self.parentAssetKey = ko.observable(config.parentAssetKey);
+      self.serviceId = ko.observable(config.serviceId);
+      self.customerAccountId = ko.observable(config.customerAccountId);
+      self.billingAccountId = ko.observable(config.billingAccountId);
+      self.serviceAccountId = ko.observable(config.serviceAccountId);
+      self.billingProfileId = ko.observable(config.billingProfileId);
+      self.activationDate = ko.observable(config.activationDate);
+      self.deactivationDate = ko.observable(config.deactivationDate);
+      self.transactionDate = ko.observable(config.transactionDate);
+      self.isPersonalized = ko.observable(false);
+      self.asset = ko.observable(config.asset);
+
+      if (config.shippingGroupRelationships &amp;&amp; config.shippingGroupRelationships.length > 0) {
+        config.shippingGroupRelationships = $.map(config.shippingGroupRelationships, function (shippingGroup, index) {
+          var shippingAddress;
+          if (shippingGroup &amp;&amp; ko.isObservable(shippingGroup.quantity)) {
+            shippingGroup.sgID = shippingGroup.productId + shippingGroup.catRefId + index
+            return shippingGroup;
+          }
+          if (shippingGroup.shippingAddress) {
+            shippingAddress = self.getAddressObject(shippingGroup.shippingAddress);
+          }
+          var shippingGroupRelationship = new ShippingGroupRelationship(shippingGroup, shippingGroup.quantity);
+          shippingGroupRelationship.sgID = shippingGroupRelationship.productId + shippingGroupRelationship.catRefId + index;
+          if (shippingGroup.selectedStore) {
+            shippingGroupRelationship.selectedStore(shippingGroup.selectedStore);
+            shippingGroupRelationship.isPickupInStore(!!(shippingGroup.selectedStore &amp;&amp; shippingGroup.selectedStore.store.locationId));
+            if (shippingGroup.firstName) {
+              shippingGroupRelationship.firstName(shippingGroup.firstName);
+            }
+            if (shippingGroup.lastName) {
+              shippingGroupRelationship.lastName(shippingGroup.lastName);
+            }
+            if (shippingGroup.phoneNumber) {
+              shippingGroupRelationship.phoneNumber(shippingGroup.phoneNumber);
+            }
+            if(shippingGroup.selectedStore.inventoryDetails &amp;&amp; shippingGroup.selectedStore.inventoryDetails.length > 0) {
+              for(var index = 0; index &lt; shippingGroup.selectedStore.inventoryDetails.length; index++) {
+                var inventoryObj = shippingGroup.selectedStore.inventoryDetails[index];
+                if(inventoryObj.locationId === shippingGroup.selectedStore.store.locationId) {
+                  shippingGroupRelationship.availabilityDate(inventoryObj.availabilityDate);
+                }
+              }
+            }
+          } else {
+            shippingGroupRelationship.shippingAddress(shippingAddress);
+            shippingGroupRelationship.shippingMethod(shippingGroup.shippingMethod);
+            shippingGroupRelationship.isPickupInStore(false);
+            shippingGroupRelationship.availabilityDate(self.availabilityDate());
+          }
+          shippingGroupRelationship.price(shippingGroup.price);
+          shippingGroupRelationship.unitPrice(shippingGroup.unitPrice);
+          return shippingGroupRelationship;
+        })
+      } else {
+        config.shippingGroupRelationships = [];
+        var shippingGroupRelationship = new ShippingGroupRelationship(self, config.quantity);
+        shippingGroupRelationship.sgID = shippingGroupRelationship.productId + shippingGroupRelationship.catRefId + "0"
+        if(config.selectedStore) {
+          shippingGroupRelationship.selectedStore(config.selectedStore);
+          if(config.hasOwnProperty("availablePickupDateTime") &amp;&amp; config.availablePickupDateTime) {
+            shippingGroupRelationship.availablePickupDate(config.availablePickupDateTime());
+          }
+          shippingGroupRelationship.isPickupInStore(!!(config.selectedStore &amp;&amp; config.selectedStore.store.locationId));
+          if(config.selectedStore.inventoryDetails &amp;&amp; config.selectedStore.inventoryDetails.length > 0) {
+            for(var index = 0; index &lt; config.selectedStore.inventoryDetails.length; index++) {
+              var inventoryObj = config.selectedStore.inventoryDetails[index];
+              if(inventoryObj.locationId === config.selectedStore.store.locationId) {
+                shippingGroupRelationship.availabilityDate(inventoryObj.availabilityDate);
+              }
+            }
+          }
+        }
+        config.shippingGroupRelationships.push(shippingGroupRelationship);
+      }
+      self.shippingGroupRelationships = ko.observableArray(config.shippingGroupRelationships);
+//      .extend({
+//        validation: [
+//          {
+//            validator: function (value) {
+//              if (value) {
+//                var shippingGroupRelationsQuantitiesSum = value.reduce(function (sum, shippingGroupRelationship) {
+//                  return sum += parseFloat(shippingGroupRelationship.quantity());
+//                }, 0);
+//
+//                self.updatableQuantity(shippingGroupRelationsQuantitiesSum);
+//                return true || self.updatableQuantity.isValid();
+//                //return true;
+//              }
+//            },
+//            message: CCi18n.t('ns.common:resources.quantityAllocationExceeded')
+//          },
+//          {
+//            validator: function (value) {
+//              var shippingGroupRelationsQuantitiesSum = value.reduce(function (sum, shippingGroupRelationship) {
+//                return sum += parseFloat(shippingGroupRelationship.quantity());
+//              }, 0);
+//
+//              //return !(shippingGroupRelationsQuantitiesSum &lt; self.quantity());
+//              return true;
+//            },
+//            message: CCi18n.t('ns.common:resources.quantityNotFullyAllocated')
+//          }]
+//      }).isModified(true);
+      //Initializing and injecting default values of custom properties at order line item level
+      if(config.lineAttributes) {
+        for(var i = 0; i&lt; config.lineAttributes().length; i++) {
+          if(config.lineAttributes()[i].value() === undefined )
+            self[config.lineAttributes()[i].id()] = ko.observable(config.lineAttributes()[i].default());
+          else  
+            self[config.lineAttributes()[i].id()] = ko.observable(config.lineAttributes()[i].value());
+        }
+      }
+      self.displayName = ko.observable(productData.displayName || '');
+      if(config.configuratorId) {
+        self.configuratorId = config.configuratorId;
+      }
+      self.childItems = config.childItems;
+      self.invalid = false;
+      self.isGWPChoicesAvaliable = ko.observable(false);
+      // If gift product, add 'giftWithPurchaseSelections' to the cart item
+      if (productData.giftProductData) {
+        self.giftWithPurchaseSelections = [
+          {
+            "giftWithPurchaseIdentifier": productData.giftProductData.giftWithPurchaseIdentifier,
+            "promotionId": productData.giftProductData.promotionId,
+            "giftWithPurchaseQuantity": productData.giftProductData.giftWithPurchaseQuantity
+          }
+        ];
+      }
+      // This will be set  when the first price call goes in.
+      self.commerceItemId = config.commerceItemId;
+      self.updatableQuantity.extend({
+        required: {params: true, message: CCi18n.t('ns.common:resources.quantityRequireMsg')},
+        digit: {params: true, message: CCi18n.t('ns.common:resources.quantityNumericMsg')},
+        trigger: {value: '0', message: CCi18n.t('ns.common:resources.removeItemMsg')}
+      });
+      self.originalPrice = ko.observable(0);
+      self.currentPrice = ko.observable(0);
+
+      self.priceListGroupId = ko.observable(SiteViewModel.getInstance().selectedPriceListGroup().id);
+      self.priceChangedMessage = ko.pureComputed(function () {
+        return CCi18n.t('ns.common:resources.productPriceChanged', {
+          originalPrice: currencyHelper.handleFractionalDigits(self.externalPrice() ? self.externalPrice() : self.originalPrice(), config.currency ? '' : config.currency.fractionalDigits),
+          currency: config.currency === undefined ? '' : config.currency.symbol
+        });
+      });
+      self.unpricedExternalMessage = ko.observable(config.unpricedExternalMessage || '');
+      self.isUnpricedError = ko.observable(self.unpricedExternalMessage().length > 0 ? true : false);
+      self.unpricedErrorMessage = ko.computed(function () {
+        var message = '';
+
+        if (self.childItems &amp;&amp; self.childItems.length > 0) {
+          message = CCi18n.t('ns.common:resources.configurableProductNoPrice', {
+            message: self.unpricedExternalMessage()
+          }); 
+        }
+        else {
+          message = CCi18n.t('ns.common:resources.noPrice');
+        }
+
+        return message;
+      });
+      self.productPriceChanged = ko.observable(false);
+      self.productPriceChanged.extend({
+        trigger: { value: true, message: self.priceChangedMessage}
+      });
+
+      // Subscriptions.
+      if (null == cartUpdateQuantitySubscription &amp;&amp; CCStoreConfiguration.getInstance().resetShippingGroupRelationships !== false) {
+        cartUpdateQuantitySubscription = $.Topic(pubsub.topicNames.CART_UPDATE_QUANTITY_SUCCESS).subscribe(self.resetShippingGroupRelationships.bind(self));
+      }
+
+      // Methods.
+
+      /**
+       * Sets the unpricedExternalMessage for the item
+       */
+      self.setUnpricedError = function (unpricedMessage) {
+        self.isUnpricedError(true);
+        self.unpricedExternalMessage(unpricedMessage ? unpricedMessage : "");
+      };
+
+      /**
+       * Clears the unpricedExternalMessage for the item
+       */
+      self.clearUnpricedError = function () {
+        self.isUnpricedError(false);
+        self.unpricedExternalMessage("");
+      };
+
+      /**
+       * Set the actual item quantity back to the initial quantity.
+       *
+       * @function
+       * @name CartItem#revertQuantity
+       */
+      self.revertQuantity = function () {
+        self.updatableQuantity(self.quantity());
+      };
+
+      /**
+       * Replace spaces in the give data parameter with dashes.
+       *
+       * @function
+       * @name CartItem.removeSpaces
+       * @param {string} data The string to modify.
+       * @returns {string} New string with the spaces replaced by dashes.
+       */
+      self.removeSpaces = function (data) {
+        if (data) {
+          return data.replace(/\s+/g, '-');
+        }
+        else {
+          return '';
+        }
+      };
+      
+      /**
+       * Returns the localized string containing the option name and the option value for a selected option.
+       * This function also determines whether or not to append a coma (,) at the end of the string by looping
+       * through the selectedOptions array and checks if there is any non-null option value after the selected option.
+       * 
+       * @function
+       * @name CartItem.optionText
+       * @param {number} index The index of the selected option.
+       * @returns {string} Localized string containing the option name and the option value.
+       */
+      self.optionText = function (index) {
+        var selectedOption = self.selectedOptions[index];
+
+        for (var i = index + 1; i &lt; self.selectedOptions.length; i++) {
+          var nextOption = self.selectedOptions[i];
+
+          if (nextOption.optionValue) {
+            return CCi18n.t('ns.common:resources.optionHasNext', {
+              optionName: selectedOption.optionName,
+              optionValue: selectedOption.optionValue
+            });
+          }
+        }
+
+        return CCi18n.t('ns.common:resources.optionLast', {
+          optionName: selectedOption.optionName,
+          optionValue: selectedOption.optionValue
+        });
+      }
+
+      /**
+       * Convert an observable object into a plain javascript object (freeze values), and remove fields
+       * that aren't relevant to pricing calculations.
+       *
+       * @function
+       * @name CartItem#toJSON
+       * @returns {Object} New Object containing cart item data.
+       */
+      self.toJSON = function () {
+        var oldOptions = koMapping.defaultOptions().ignore;
+
+        koMapping.defaultOptions().ignore = [
+          "productData",
+          "itemTotal",
+          "updatableQuantity",
+          "productPriceChanged",
+          "originalPrice",
+          "priceChangedMessage",
+          "isGWPChoicesAvaliable",
+          "giftData",
+          "unpricedErrorMessage",
+          "unpricedExternalMessage",
+          "isUnpricedError",
+          "isPersonalized",
+          "currentPrice",
+          "shippingGroupRelationships",
+          "discountAmount",
+          "isPriceOverridden",
+          "isUpdate",
+          "processed"
+        ];
+
+        var copy = koMapping.toJS(self);
+
+        koMapping.defaultOptions().ignore = oldOptions;
+
+        return copy;
+      };
+      
+  /**
+   * Checks whether this item is a GWP item and has proper quantity.
+   * This shopping cart item should have giftWithPurchaseCommerceItemMarkers for the successful flow.
+   */
+    self.isThisGWPCommerceItemAndValid = function() {
+    var gwpciMarkers = self.giftWithPurchaseCommerceItemMarkers;
+    if (gwpciMarkers &amp;&amp; gwpciMarkers.length > 0) {
+      //if (self.quantity() &lt;= (gwpciMarkers[0].automaticQuantity + gwpciMarkers[0].selectedQuantity)) {
+      return true;
+      //}
+    }
+    return false;
+    };
+  
+      /**
+       * Add validation functions to updatable quantity field to ensure it lies between the maximum orderable
+       * quantity and greater than zero, and there is available stock.
+       *
+       * @private
+       * @function
+       * @name CartItem#addLimitsValidation
+       * @param {boolean} stockStatus Whether the item is in stock.
+       * @param {number} orderableQuantity How many of item are available to order.
+       */
+      self.addLimitsValidation = function (stockStatus, orderableQuantity, stockData, isPreOrderBackOrderEnabled, allSkuStockData, isOrderAmendment,orderedQuantityMap) {
+        var orderLimit;
+    if (self.productData() &amp;&amp; self.productData().notForIndividualSale &amp;&amp; self.isThisGWPCommerceItemAndValid()) {
+      if (stockData) {
+      stockData.orderLimit = self.quantity();
+      }
+      else {
+      orderLimit = self.quantity();
+      }
+    }
+        self.orderableQuantity = orderableQuantity;
+        self.stockStatus(stockStatus);
+        if(stockData){
+          orderLimit = stockData.orderLimit
+          self.availabilityDate(stockData.availabilityDate);
+        }
+        self.updatableQuantity.rules.remove(function (item) {return item.rule == "max";});
+        self.updatableQuantity.rules.remove(function (item) {return item.rule == "maxItemQuantity";});
+
+        if (
+          orderableQuantity !== null &amp;&amp; 
+          !isNaN(orderableQuantity) &amp;&amp; 
+          orderableQuantity > 0
+        ) {
+          var insufficientStockMsg = CCi18n.t('ns.common:resources.insufficientStockMsg', {
+           stockLimit: orderLimit &amp;&amp; orderLimit&lt;orderableQuantity?orderLimit:orderableQuantity
+          });
+
+          self.updatableQuantity.extend({
+            maxItemQuantity:{params: {orderableQuantity: orderableQuantity,
+            totalQuantity:self.getItemQuantityInCart, orderLimit:orderLimit}, message: insufficientStockMsg}
+          });
+        }
+        else {
+          var outOfStockMsg = CCi18n.t('ns.common:resources.outOfStockMsg');
+
+          self.updatableQuantity.extend({
+            max: {params: 0, message: outOfStockMsg}
+          });
+        }
+
+        var partialMsg = "";
+        if(ccRestClient.profileType === ccConstants.PROFILE_TYPE_AGENT) {
+            // getOrderableQuantityMessageForAgent will return the orderable message and will update the stockStatus and the stockState accordingly.
+            partialMsg = self.getOrderableQuantityMessageForAgent(self, stockData,isPreOrderBackOrderEnabled,isOrderAmendment,orderedQuantityMap)
+        }else{
+          if(isPreOrderBackOrderEnabled &amp;&amp; stockData &amp;&amp; stockData.inStockQuantity > 0 &amp;&amp; self.updatableQuantity() > stockData.inStockQuantity) {
+            if (stockData.backOrderableQuantity > 0) {
+              partialMsg = CCi18n.t('ns.common:resources.partialBackOrderMsg', {stockLimit: stockData.inStockQuantity});
+            }
+            else if(stockData.preOrderableQuantity > 0) {
+              partialMsg = CCi18n.t('ns.common:resources.partialPreOrderMsg', {stockLimit: stockData.inStockQuantity});
+            }
+           
+          }
+          if(stockData){
+            self.stockState(stockData.stockStatus);
+           }
+        }     
+        self.orderableQuantityMessage(partialMsg);
+        //added this to trigger the validations on load of page.
+        self.updatableQuantity.isModified(true);
+
+        self.shippingGroupRelationships.extend({
+          validation: [
+            {
+              validator: function (value) {
+                if (value) {
+                  // We keep this for sake of backward compatibility
+                  return true;
+                }
+              },
+              message: insufficientStockMsg
+            }]
+        }).isModified(true);
+      };
+
+      /*
+      *This method calculates the stock status during Agent Create/Edit order scenario
+      *and generates messages wrt to back/pre order, full back/pre order and child items.
+      *
+      * @private
+      * @function
+      * @name CartItem#getOrderableQuantityMessageForAgent.
+      * @pItem {Object} cart data of the specific item.
+      * @pStockData {Object} stockData of the item returned form stockStatus call.
+      * @isPreOrderBackOrderEnabled {boolean} boolean value if back/Pre order configuration is enabled.
+      * @isOrderAmendment {boolean} value to determine if the flow is from edit order(Agent Flow).
+      * @orderedQuantityMap {map} map which holds the specific value of backorder , preorder and in_stock quantities when order was plcaed.
+      * @quantityMultiplier {integer} holds the quantity of main item which has child item.
+      */
+      self.getOrderableQuantityMessageForAgent = function(pItem, pStockData,isPreOrderBackOrderEnabled, isOrderAmendment, orderedQuantityMap, quantityMultiplier) {
+        var self = this;
+        var statusMsg = "";
+        var itemStockStatus = "IN_STOCK";
+
+            var inStockQuantity = pStockData.inStockQuantity;
+            var backorderQuantity = pStockData.backOrderableQuantity;
+            var preorderQuantity = pStockData.preOrderableQuantity;
+
+            var quantity = pItem.updatableQuantity() &lt; pStockData.orderableQuantity ? pItem.updatableQuantity() : pStockData.orderableQuantity;
+            if(quantityMultiplier){
+              quantity = quantity * quantityMultiplier;
+            }
+            var key = pItem.productId + ":" + pItem.catRefId;
+            if(isOrderAmendment &amp;&amp; orderedQuantityMap[key]){
+              backorderQuantity = backorderQuantity + orderedQuantityMap[key].backOrderQuantity;
+              preorderQuantity = preorderQuantity + orderedQuantityMap[key].preOrderQuantity;
+              inStockQuantity = inStockQuantity + orderedQuantityMap[key].inStockQuantity;
+
+              var nonInStockQuantity = quantity - inStockQuantity;
+              if(nonInStockQuantity > 0){
+                if (backorderQuantity > 0) {
+                  statusMsg = CCi18n.t('ns.common:resources.AgentBackorderableText', {stockLimit: CCi18n.t('ns.common:resources.asteriskSymbol')});
+                  itemStockStatus = ccConstants.BACKORDERABLE;
+                } else if (preorderQuantity > 0) {
+                  statusMsg = CCi18n.t('ns.common:resources.AgentPreorderableText', {stockLimit: CCi18n.t('ns.common:resources.asteriskSymbol')});
+                  itemStockStatus = ccConstants.PREORDERABLE;
+                }
+              }else{
+                itemStockStatus = "IN_STOCK";
+              }
+
+            }else{
+              if (pStockData.stockStatus &amp;&amp; (quantity - inStockQuantity) > 0) {
+                if (backorderQuantity > 0) {
+                  statusMsg = CCi18n.t('ns.common:resources.AgentBackorderableText', {stockLimit: CCi18n.t('ns.common:resources.asteriskSymbol')});
+                  itemStockStatus = ccConstants.BACKORDERABLE;
+                } else if (preorderQuantity > 0) {
+                  statusMsg = CCi18n.t('ns.common:resources.AgentPreorderableText', {stockLimit: CCi18n.t('ns.common:resources.asteriskSymbol')});
+                  itemStockStatus = ccConstants.PREORDERABLE;
+                }
+              } else {
+                if (pStockData.stockStatus &amp;&amp; pStockData.stockStatus === "BACKORDERABLE") {
+                  statusMsg = CCi18n.t('ns.common:resources.AgentBackorderableText', {stockLimit: CCi18n.t('ns.common:resources.asteriskSymbol')});
+                } else if (pStockData.stockStatus &amp;&amp; pStockData.stockStatus === "PREORDERABLE") {
+                  statusMsg = CCi18n.t('ns.common:resources.AgentPreorderableText', {stockLimit: CCi18n.t('ns.common:resources.asteriskSymbol')});
+                }
+              }
+            }
+            self.stockState(itemStockStatus);
+            self.availabilityDate(pStockData.availabilityDate ? CCDate.dateTimeFormatter(pStockData.availabilityDate, null, "medium") : '');
+
+
+
+        return statusMsg.trim();
+      };
+
+      /**
+       * Add checks and validation functions to updatable quantity field of a configured
+       * item to make sure the quantity is within the values that makes sure that the 
+       * main item as well as the child items are in stock.
+       * 
+       * @private
+       * @function
+       * @name CartItem#addConfigurableStockValidation
+       * @param {Object} stockData the stock related data of all the skus present
+       *                 in the cart.
+       */
+      self.addConfigurableStockValidation = function (stockData, isPreOrderBackOrderEnabled, isOrderAmendment, validOrderQuantityMap, orderedQuantityMap) {
+        var maxOrderableQuantity = 0;
+        var orderLimit = 0;
+        var stockStatus = false;
+        var availabilityDate = null;
+        var stockState = null;
+        var validOrderableQuantity = 0;
+
+        // Main item
+        for (var i = 0; i &lt; stockData.length; i++) {
+          if (
+            self.productId === stockData[i].productId &amp;&amp; 
+            self.catRefId === stockData[i].catRefId
+          ) {
+            if(isOrderAmendment &amp;&amp; validOrderQuantityMap &amp;&amp;  validOrderQuantityMap[stockData[i].productId + ":" + stockData[i].catRefId]){
+              validOrderableQuantity = validOrderQuantityMap[stockData[i].productId + ":" + stockData[i].catRefId];
+            }else {
+              validOrderableQuantity = stockData[i].orderableQuantity;
+            }
+            if (
+              stockData[i].stockStatus === 'IN_STOCK' || 
+              (
+                isPreOrderBackOrderEnabled &amp;&amp; 
+                (
+                  stockData[i].stockStatus === 'BACKORDERABLE' || 
+                  stockData[i].stockStatus === 'PREORDERABLE'
+                )
+              ) ||
+              ( ccRestClient.profileType === ccConstants.PROFILE_TYPE_AGENT &amp;&amp; validOrderableQuantity > 0)
+            ) {
+              if (
+                validOrderableQuantity !== null &amp;&amp;
+                !isNaN(validOrderableQuantity) &amp;&amp;
+                validOrderableQuantity > 0
+              ) {
+                var partialMsg = "";
+
+                stockStatus = true;
+                availabilityDate = stockData[i].availabilityDate;
+                stockState = stockData[i].stockStatus;
+                maxOrderableQuantity = validOrderableQuantity;
+                orderLimit = stockData[i].orderLimit;
+                
+                if(ccRestClient.profileType === ccConstants.PROFILE_TYPE_AGENT){
+                    // getOrderableQuantityMessageForAgent will return the orderable message and will update the stockStatus and the stockState accordingly.
+                    partialMsg = self.getOrderableQuantityMessageForAgent(self, stockData[i],isPreOrderBackOrderEnabled,isOrderAmendment,orderedQuantityMap)
+                }else{
+                	if (
+                            isPreOrderBackOrderEnabled &amp;&amp; 
+                            stockData[i].inStockQuantity > 0 &amp;&amp; 
+                            self.updatableQuantity() > stockData[i].inStockQuantity
+                          ) {
+                            if (stockData[i].backOrderableQuantity > 0) {
+                              partialMsg = CCi18n.t('ns.common:resources.partialBackOrderMsg', {
+                                stockLimit: stockData[i].inStockQuantity
+                              });
+                            }
+                            else if (stockData[i].preOrderableQuantity > 0) {
+                              partialMsg = CCi18n.t('ns.common:resources.partialPreOrderMsg', {
+                                stockLimit: stockData[i].inStockQuantity
+                              });
+                            }
+                    }
+
+                }
+              } 
+              else {
+                stockStatus = false;
+              }
+            } 
+            else {
+              stockStatus = false;
+            }
+            break;
+          }
+        }
+
+        // Now add a check for all the child items and the quantity. If one of the child
+        // items can be added less than the maxOrderableQuantity, then update the 
+        // maxOrderableQuantity with that value.
+        if (
+          self.childItems &amp;&amp;
+          stockStatus
+        ) {
+          for (var i = 0; i &lt; self.childItems.length; i++) {
+            var productId = self.childItems[i].productId;
+            var catRefId = self.childItems[i].catRefId;
+            var quantity = ko.utils.unwrapObservable(self.childItems[i].quantity);
+            var validOrderableQuantityOfChild = 0;
+            for (var j = 0; j &lt; stockData.length; j++) {
+              if (
+                productId === stockData[j].productId &amp;&amp; 
+                catRefId === stockData[j].catRefId
+              ) {
+                if(isOrderAmendment &amp;&amp; validOrderQuantityMap &amp;&amp;  validOrderQuantityMap[productId + ":" + catRefId]){
+                  validOrderableQuantityOfChild = validOrderQuantityMap[productId + ":" + catRefId];
+                }else{
+                  validOrderableQuantityOfChild = stockData[j].orderableQuantity;
+                }
+
+                if (
+                  stockData[j].stockStatus === 'IN_STOCK'|| 
+                  (
+                    isPreOrderBackOrderEnabled &amp;&amp; 
+                    (
+                      stockData[j].stockStatus === 'BACKORDERABLE' || 
+                      stockData[j].stockStatus === 'PREORDERABLE'
+                    )
+                  ) ||
+                 ( ccRestClient.profileType === ccConstants.PROFILE_TYPE_AGENT  &amp;&amp;  validOrderableQuantityOfChild > 0 )
+                ) {
+                  if (
+                    validOrderableQuantityOfChild !== null &amp;&amp;
+                    !isNaN(validOrderableQuantityOfChild) &amp;&amp;
+                    validOrderableQuantityOfChild > 0
+                  ) {
+                    // Get the current quantity and floor the max orderable
+                    // accordingly.
+                    var orderableQuantity = Math.floor(validOrderableQuantityOfChild/quantity);
+
+                    maxOrderableQuantity = (maxOrderableQuantity > orderableQuantity) ? orderableQuantity : maxOrderableQuantity;
+                    orderLimit = (orderLimit>stockData[j].orderLimit)?stockData[j].orderLimit:orderLimit;
+                    stockStatus = true;
+                    if(ccRestClient.profileType === ccConstants.PROFILE_TYPE_AGENT){
+                      var quantityMultiplier = self.updatableQuantity();
+                      // getOrderableQuantityMessageForAgent will return the orderable message and will update the stockStatus and the stockState accordingly.
+                      partialMsg = self.getOrderableQuantityMessageForAgent(self.childItems[i], stockData[j],isPreOrderBackOrderEnabled,isOrderAmendment,orderedQuantityMap,quantityMultiplier);
+                    }
+                  }
+                  else {
+                    stockStatus = false;
+                  }
+                }
+                else {
+                  stockStatus = false;
+                }
+                break;
+              }
+            }
+            if (!stockStatus) {
+              // If one of the product is out of stock, break it out.
+              break;
+            }
+          }
+        }
+
+        if(ccRestClient.profileType !== ccConstants.PROFILE_TYPE_AGENT){
+          self.availabilityDate(availabilityDate);
+          self.stockState(stockState);            	
+        }
+        self.stockStatus(stockStatus);
+        self.orderableQuantityMessage(partialMsg);
+        self.updatableQuantity.rules.remove(function (item) {return item.rule == "max";});
+        self.updatableQuantity.rules.remove(function (item) {return item.rule == "maxItemQuantity";});
+
+        if (
+          stockStatus &amp;&amp;
+          maxOrderableQuantity > 0
+        ) {
+          var insufficientStockMsg = CCi18n.t('ns.common:resources.insufficientStockMsg', {
+            stockLimit: (maxOrderableQuantity>orderLimit)?orderLimit:maxOrderableQuantity
+          });
+
+          self.updatableQuantity.extend({
+            maxItemQuantity:{params: {orderableQuantity:maxOrderableQuantity,
+            totalQuantity:self.getItemQuantityInCart, orderLimit:orderLimit, childItems:self.childItems}, message: insufficientStockMsg}
+          });
+        }
+        else {
+          var outOfStockMsg = CCi18n.t('ns.common:resources.configurableProductOutOfStockMsg');
+
+          self.updatableQuantity.extend({
+            max: {params: 0, message: outOfStockMsg}
+          });
+        }
+
+        self.updatableQuantity.isModified(true);
+      };
+
+      /**
+       * Populates custom property values for a given cartItem
+       * with the relevant key-value pairs.
+       *
+       * @function
+       * @name CartItem#populateItemDynamicProperties
+       * @param {observableArray&lt;Object>} customProps The object array specifying custom property key value pairs
+       */
+      self.populateItemDynamicProperties = function (customProps) {
+        for (var key in customProps) {
+          self[key](customProps[key]());
+        }
+      };
+    }
+
+    /**
+     * &lt;p>
+     *   Determines if it is possible to add another shipping group relationship instance (i.e. associate/split the 
+     *   cart item with another shipping group). The maximum number of shipping group relationship instances is equal 
+     *   to the cart item quantity, beyond which it is not possible to split the cart item any further (as there would
+     *   be more associations than cart items available).
+     * &lt;/p>
+     *
+     * @function
+     * @return {boolean} true if it is possible to add another shipping group relationship instance, false otherwise.
+     */
+    CartItem.prototype.canAddShippingGroupRelationship = function (shippingGroupRelationship) {
+      // Can have at most this.quantity() shipping group relationships.
+      var canAddShippingGroupRelationship = this.quantity() > this.shippingGroupRelationships().length;
+
+      if (shippingGroupRelationship) {
+        return canAddShippingGroupRelationship &amp;&amp; shippingGroupRelationship.quantity() > 1;
+      }
+      return canAddShippingGroupRelationship;
+    };
+
+    CartItem.prototype.getAddressObject = function (address) {
+      var translateHelper =  {
+        translate: function(key, options) {
+          return CCi18n.t('ns.common:resources.' + key, options);
+        }
+      };
+      var shippingAddress = new Address('split-shipping-address', '', translateHelper, [], "");
+      shippingAddress.copyFrom(address);
+      return shippingAddress;
+    }
+
+    /**
+     * &lt;p>
+     *   In order to ship the same cart item (SKU) to several different addresses (shipping groups), it is necessary
+     *   to create several associations (shipping group relationships) between a cart item and shipping group. This 
+     *   method creates additional shipping group relationship instances, allowing multiple associations per single 
+     *   cart item. The maximum number of shipping group relationship instances is equal to the cart item quantity, 
+     *   beyond which it is not possible to split the cart item any further (as there would be more associations than
+     *   cart items available).
+     * &lt;/p>
+     *
+     * @function
+     */
+    CartItem.prototype.addShippingGroupRelationship = function (shippingGroupRelationship, cart) {
+      // Can have at most this.quantity() shipping group relationships.
+      if (this.canAddShippingGroupRelationship()) {
+        // Add a new shipping group relationships.
+        var newSGR = new ShippingGroupRelationship(this, 1);
+        newSGR.sgID = newSGR.productId + newSGR.catRefId + this.shippingGroupRelationships().length+"";
+        if (this.detailedItemPriceInfo()[0]) {
+          newSGR.unitPrice(this.detailedItemPriceInfo()[0].detailedUnitPrice);
+        }
+        if (shippingGroupRelationship) {
+          var rule = shippingGroupRelationship.updatableQuantity.rules().filter(function(r) {
+            return r.rule == "maxItemQuantity";
+          })[0];
+          newSGR.updatableQuantity.extend({maxItemQuantity: rule});
+        }
+        if(cart &amp;&amp; null !== cart) {
+          newSGR.getItemQuantityInCart = cart.getUpdatableItemQuantityInCart.bind(
+            cart, cart.items(), newSGR.productId, newSGR.catRefId, newSGR);
+          if(this.childItems) {
+            newSGR.addConfigurableStockValidation(
+                shippingGroupRelationship.inventoryDetails ? shippingGroupRelationship.inventoryDetails : [], cart.isPreOrderBackOrderEnabled);
+          }
+          else {
+            newSGR.addLimitsValidation(this, shippingGroupRelationship.inventoryDetails ? shippingGroupRelationship.inventoryDetails : [],
+                cart.isPreOrderBackOrderEnabled)
+          }
+        }
+        this.shippingGroupRelationships.push(newSGR);
+
+        // The sum of the shipping group relationship quantities should equal the cart item quantity. 
+        // As a new quantity has been added, the other quantities must be adjusted.
+        // 
+        // Find the first shiping group with quantity > 1 and decrement by 1.
+        if (shippingGroupRelationship) {
+          shippingGroupRelationship.addQuantity(-1);
+        } else {
+          var shippingGroupRelationshipForQuantityAdjusment = ko.utils.arrayFirst(this.shippingGroupRelationships(), function (shippingGroupRelationship) {
+            return shippingGroupRelationship.quantity() > 1;
+          });
+          shippingGroupRelationshipForQuantityAdjusment.addQuantity(-1);
+        }
+
+      }
+    };
+
+    /**
+     * &lt;p>
+     *   Remove a ShippingGroupRelationship instance from the cart item's shippingGroupRelationships array.
+     * &lt;/p>
+     *
+     * @function
+     * @param {ShippingGroupRelationship} shippingGroupRelationship The instance to be removed.
+     */
+    CartItem.prototype.removeShippingGroupRelationShip = function (shippingGroupRelationship) {
+      // Must have at least 1 shipping group relationship.
+      if (this.shippingGroupRelationships().length >= 1) {
+        // Remove the shipping group relationship.
+        this.shippingGroupRelationships.remove(shippingGroupRelationship);
+
+        // The sum of the shipping group relationship quantities should equal the cart item quantity.
+        // As a quantity has been removed that quantity must be changed accordingly in the cart item.
+        this.updatableQuantity(this.quantity() - shippingGroupRelationship.quantity());
+        this.itemTotal(this.itemTotal() - shippingGroupRelationship.price());
+        $.Topic(pubsub.topicNames.CART_UPDATE_QUANTITY).publishWith(
+            this.productData(),[{"message":"success", "commerceItemId": this.commerceItemId, "shippingGroup" : shippingGroupRelationship}]);
+        $.Topic(pubsub.topicNames.SHIPPING_GROUP_REMOVE_SUCCESS).publishWith(function() {[{"message":"success"}];});
+      }
+    }
+
+    /**
+     * &lt;p>
+     *   Adds or updates the shippingGroup based on the parameters passed in.
+     * &lt;/p>
+     * &lt;ul>
+     *   &lt;li>
+     *     Scenario 1 - Changes to shipping group relationship quantities that cause a mismatch are handled by form
+     *     validation.
+     *   &lt;/li>
+     *   &lt;li>
+     *     Scenario 2 - Changes to the cart item quantity that causes a mismatch must trigger a reset of the shipping 
+     *     group relationships array to accomodate the respective change.
+     *   &lt;/li>
+     * &lt;/ul>
+     * &lt;p>
+     *   This method handle scenario 2.
+     * &lt;/p>
+     *
+     * @private
+     * @function
+     */
+
+    CartItem.prototype.resetShippingGroupRelationships = function (publishMsg) {
+      var createNewSGR = publishMsg ? publishMsg.createNewSGR : false;
+      var cartItem = publishMsg ? publishMsg.cartItem : undefined;
+      var prodData = publishMsg ? publishMsg.prodData : undefined;
+      var shippingGroup = publishMsg ? publishMsg.shippingGroup : undefined;
+      // If the cart is modified reset the shipping group relationships to the default state.
+      if (createNewSGR &amp;&amp; cartItem &amp;&amp; prodData) {
+        var newShippingGroup = new ShippingGroupRelationship(cartItem, prodData.orderQuantity);
+        if(ko.isObservable(prodData.selectedStore) &amp;&amp; prodData.selectedStore() &amp;&amp; prodData.selectedStore().store.locationId) {
+          newShippingGroup.isPickupInStore(true);
+          newShippingGroup.selectedStore(prodData.selectedStore());
+          if(prodData.hasOwnProperty("availablePickupDateTime") &amp;&amp; prodData.availablePickupDateTime) {
+            newShippingGroup.availablePickupDate(prodData.availablePickupDateTime());
+          }
+          // mapping 'availabilityDate' field to shipping group.
+          if(prodData.selectedStore().inventoryDetails &amp;&amp; prodData.selectedStore().inventoryDetails.length > 0) {
+            for(var index = 0; index &lt; prodData.selectedStore().inventoryDetails.length; index++) {
+              var inventoryObj = prodData.selectedStore().inventoryDetails[index];
+              if(inventoryObj.locationId === prodData.selectedStore().store.locationId) {
+                newShippingGroup.availabilityDate(inventoryObj.availabilityDate);
+              }
+            }
+          }
+          newShippingGroup.stockState(prodData.stockState);
+        } else {
+          newShippingGroup.isPickupInStore(false);
+        }
+        cartItem.shippingGroupRelationships.push(newShippingGroup);
+      } else if(shippingGroup) {
+        if (!parseInt(shippingGroup.updatableQuantity())) {
+          this.shippingGroupRelationships.remove(shippingGroup);
+        } else {
+          shippingGroup.quantity(shippingGroup.updatableQuantity());
+        }
+      } else if(publishMsg &amp;&amp; publishMsg.data &amp;&amp; publishMsg.data.shippingGroupRelationships &amp;&amp; publishMsg.data.shippingGroupRelationships().length > 1) {
+          prodData = publishMsg.prodData;
+          var quantity = 0;
+          var newQuantity = publishMsg.data.updatableQuantity();
+          for(var index = 0; index &lt; publishMsg.data.shippingGroupRelationships().length; index++) {
+              quantity += parseInt(publishMsg.data.shippingGroupRelationships()[index].quantity());
+          }
+
+          var diff = newQuantity - quantity;
+          if (diff > 0) {
+              var newShippingGroup = new ShippingGroupRelationship(publishMsg.data, diff);
+              if(ko.isObservable(prodData.selectedStore) &amp;&amp; prodData.selectedStore() &amp;&amp; prodData.selectedStore().store.locationId) {
+                  newShippingGroup.isPickupInStore(true);
+                  newShippingGroup.selectedStore(prodData.selectedStore());
+                  if(prodData.hasOwnProperty("availablePickupDateTime") &amp;&amp; prodData.availablePickupDateTime) {
+                      newShippingGroup.availablePickupDate(prodData.availablePickupDateTime());
+                  }
+                  // mapping 'availabilityDate' field to shipping group.
+                  if(prodData.selectedStore().inventoryDetails &amp;&amp; prodData.selectedStore().inventoryDetails.length > 0) {
+                      for(var index = 0; index &lt; prodData.selectedStore().inventoryDetails.length; index++) {
+                          var inventoryObj = prodData.selectedStore().inventoryDetails[index];
+                          if(inventoryObj.locationId === prodData.selectedStore().store.locationId) {
+                              newShippingGroup.availabilityDate(inventoryObj.availabilityDate);
+                          }
+                      }
+                  }
+                  newShippingGroup.stockState(prodData.stockState);
+              } else {
+                  newShippingGroup.isPickupInStore(false);
+              }
+
+              publishMsg.data.shippingGroupRelationships.push(newShippingGroup);
+          } else if(diff &lt; 0) {
+              diff = Math.abs(diff);
+              for(var index = publishMsg.data.shippingGroupRelationships().length -1; index >= 0 &amp;&amp; diff > 0; index--) {
+                  if (diff >= publishMsg.data.shippingGroupRelationships()[index].quantity()) {
+                      // Remove SGCIR
+                      diff = diff - publishMsg.data.shippingGroupRelationships()[index].quantity();
+                      publishMsg.data.shippingGroupRelationships().splice(index, 1);
+                  } else {
+                      quantity = publishMsg.data.shippingGroupRelationships()[index].quantity() - diff;
+                      publishMsg.data.shippingGroupRelationships()[index].quantity(quantity);
+                      publishMsg.data.shippingGroupRelationships()[index].updatableQuantity(quantity);
+                      diff = 0;
+                  }
+              }
+          }
+      }
+
+    };
+    
+    CartItem.prototype.isOnlineOnly = function() {
+      var self = this;
+      if(self.productData &amp;&amp; self.productData() &amp;&amp; null !== self.productData) {
+        //check if 'onlineOnly' flag is set at SKU level.
+      if(self.productData().childSKUs &amp;&amp; null !== self.productData().childSKUs
+        &amp;&amp; self.productData().childSKUs.length > 0) {
+
+        for(var index = 0; index &lt; self.productData().childSKUs.length; index++) {
+        if(self.productData().childSKUs[index].repositoryId === self.catRefId
+          &amp;&amp; null !== self.productData().childSKUs[index].derivedOnlineOnly)  {
+          return self.productData().childSKUs[index].derivedOnlineOnly;
+        }
+        }
+        if(self.productData().onlineOnly) {
+          return self.productData().onlineOnly;
+        }
+      }
+      }
+      return false;
+    };
+    return CartItem;
+  });
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Index</a></h2><h3>Modules</h3><ul><li><a href="module-ccKoErrorWrapper.html">ccKoErrorWrapper</a></li><li><a href="module-ccKoExtensions.html">ccKoExtensions</a></li></ul><h3>Classes</h3><ul><li><a href="Address.html">Address</a></li><li><a href="CartViewModel.html">CartViewModel</a></li><li><a href="CCStoreConfiguration.html">CCStoreConfiguration</a></li><li><a href="CheckoutScheduledOrder.html">CheckoutScheduledOrder</a></li><li><a href="delegatedAdminContacts.html">delegatedAdminContacts</a></li><li><a href="DynamicProperty.html">DynamicProperty</a></li><li><a href="DynamicPropertyMetaContainer.html">DynamicPropertyMetaContainer</a></li><li><a href="EventDispatcher.html">EventDispatcher</a></li><li><a href="GiftCardViewModel.html">GiftCardViewModel</a></li><li><a href="GiftProductListingViewModel.html">GiftProductListingViewModel</a></li><li><a href="global.html#InfinityViewModel">InfinityViewModel</a></li><li><a href="IntegrationViewModel.html">IntegrationViewModel</a></li><li><a href="ko.bindingHandlers.background.html">background</a></li><li><a href="ko.bindingHandlers.carouselSwipe.html">carouselSwipe</a></li><li><a href="ko.bindingHandlers.ccDateTime.html">ccDateTime</a></li><li><a href="ko.bindingHandlers.ccForm.html">ccForm</a></li><li><a href="ko.bindingHandlers.ccLink.html">ccLink</a></li><li><a href="ko.bindingHandlers.ccValidation.html">ccValidation</a></li><li><a href="ko.bindingHandlers.checkbox.html">checkbox</a></li><li><a href="ko.bindingHandlers.chosen.html">chosen</a></li><li><a href="ko.bindingHandlers.contextResourcesNamespace.html">contextResourcesNamespace</a></li><li><a href="ko.bindingHandlers.currency.html">currency</a></li><li><a href="ko.bindingHandlers.datepicker.html">datepicker</a></li><li><a href="ko.bindingHandlers.datepopover.html">datepopover</a></li><li><a href="ko.bindingHandlers.draggable.html">draggable</a></li><li><a href="ko.bindingHandlers.droppable.html">droppable</a></li><li><a href="ko.bindingHandlers.fade.html">fade</a></li><li><a href="ko.bindingHandlers.hover.html">hover</a></li><li><a href="ko.bindingHandlers.image.html">image</a></li><li><a href="ko.bindingHandlers.imageSource.html">imageSource</a></li><li><a href="ko.bindingHandlers.imageZoom.html">imageZoom</a></li><li><a href="ko.bindingHandlers.localeText.html">localeText</a></li><li><a href="ko.bindingHandlers.makeAccess.html">makeAccess</a></li><li><a href="ko.bindingHandlers.modal.html">modal</a></li><li><a href="ko.bindingHandlers.modalTabbingContraint.html">modalTabbingContraint</a></li><li><a href="ko.bindingHandlers.onRender.html">onRender</a></li><li><a href="ko.bindingHandlers.popeditor.html">popeditor</a></li><li><a href="ko.bindingHandlers.popover.html">popover</a></li><li><a href="ko.bindingHandlers.productImageSource.html">productImageSource</a></li><li><a href="ko.bindingHandlers.productVariantImageSource.html">productVariantImageSource</a></li><li><a href="ko.bindingHandlers.propertyEditor.html">propertyEditor</a></li><li><a href="ko.bindingHandlers.radio.html">radio</a></li><li><a href="ko.bindingHandlers.richTextEditor.html">richTextEditor</a></li><li><a href="ko.bindingHandlers.scrollAffix.html">scrollAffix</a></li><li><a href="ko.bindingHandlers.select2.html">select2</a></li><li><a href="ko.bindingHandlers.select2Tags.html">select2Tags</a></li><li><a href="ko.bindingHandlers.selectable.html">selectable</a></li><li><a href="ko.bindingHandlers.slide.html">slide</a></li><li><a href="ko.bindingHandlers.slider.html">slider</a></li><li><a href="ko.bindingHandlers.spectrum.html">spectrum</a></li><li><a href="ko.bindingHandlers.textCheck.html">textCheck</a></li><li><a href="ko.bindingHandlers.timepicker.html">timepicker</a></li><li><a href="ko.bindingHandlers.triggerMessage.html">triggerMessage</a></li><li><a href="ko.bindingHandlers.validatableTarget.html">validatableTarget</a></li><li><a href="ko.bindingHandlers.validatableValue.html">validatableValue</a></li><li><a href="ko.bindingHandlers.widgetLocaleText.html">widgetLocaleText</a></li><li><a href="koValidation.alphaNumeric.html">alphaNumeric</a></li><li><a href="koValidation.alphaNumericNoSpaces.html">alphaNumericNoSpaces</a></li><li><a href="koValidation.alphaNumericNoSpacesNoDashesWithSeperators.html">alphaNumericNoSpacesNoDashesWithSeperators</a></li><li><a href="koValidation.alphaNumericNoSpacesWithSeperators.html">alphaNumericNoSpacesWithSeperators</a></li><li><a href="koValidation.alphaNumericWithSeperators.html">alphaNumericWithSeperators</a></li><li><a href="koValidation.bool.html">bool</a></li><li><a href="koValidation.creditcard.html">creditcard</a></li><li><a href="koValidation.cvv.html">cvv</a></li><li><a href="koValidation.endmonth.html">endmonth</a></li><li><a href="koValidation.endyear.html">endyear</a></li><li><a href="koValidation.importFileName.html">importFileName</a></li><li><a href="koValidation.laterDate.html">laterDate</a></li><li><a href="koValidation.match.html">match</a></li><li><a href="koValidation.mediaZipFileName.html">mediaZipFileName</a></li><li><a href="koValidation.number.html">number</a></li><li><a href="koValidation.observablePattern.html">observablePattern</a></li><li><a href="koValidation.password.html">password</a></li><li><a href="koValidation.price.html">price</a></li><li><a href="koValidation.propertyIdAlreadyInUse.html">propertyIdAlreadyInUse</a></li><li><a href="koValidation.propertyNameAlreadyInUse.html">propertyNameAlreadyInUse</a></li><li><a href="koValidation.restrictSlashCharacters.html">restrictSlashCharacters</a></li><li><a href="koValidation.startmonth.html">startmonth</a></li><li><a href="koValidation.startyear.html">startyear</a></li><li><a href="koValidation.uniqueTrimmed.html">uniqueTrimmed</a></li><li><a href="koValidation.uniqueTrimmedCaseInsensitive.html">uniqueTrimmedCaseInsensitive</a></li><li><a href="koValidation.url.html">url</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.addTemplate.html">addTemplate</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.agentBar.html">agentBar</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.ccDate.html">ccDate</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.ccNumber.html">ccNumber</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.ccResizeImage.html">ccResizeImage</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.disabled.html">disabled</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.element.html">element</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.embeddedAssistance.html">embeddedAssistance</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.fireChange.html">fireChange</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.inTabFlow.html">inTabFlow</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.noIndexMeta.html">noIndexMeta</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.previewBar.html">previewBar</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.setContextVariable.html">setContextVariable</a></li><li><a href="multiCartViewModel.html">multiCartViewModel</a></li><li><a href="NavStateViewModel.html">NavStateViewModel</a></li><li><a href="OrderDetailsViewModel.html">OrderDetailsViewModel</a></li><li><a href="OrderHistoryViewModel.html">OrderHistoryViewModel</a></li><li><a href="OrdersPendingApprovalViewModel.html">OrdersPendingApprovalViewModel</a></li><li><a href="OrderViewModel.html">OrderViewModel</a></li><li><a href="Organization.html">Organization</a></li><li><a href="ParentOrganisation.html">ParentOrganisation</a></li><li><a href="ProductListingSearchViewModel.html">ProductListingSearchViewModel</a></li><li><a href="ProductListingViewModel.html">ProductListingViewModel</a></li><li><a href="ProductTypes.html">ProductTypes</a></li><li><a href="ProductViewModel.html">ProductViewModel</a></li><li><a href="PromotionUpsellContainer.html">PromotionUpsellContainer</a></li><li><a href="PubSub.topicNames.html">topicNames</a></li><li><a href="PurchaseListListingViewModel.html">PurchaseListListingViewModel</a></li><li><a href="PurchaseListViewModel.html">PurchaseListViewModel</a></li><li><a href="RegistrationRequestSearchViewModel.html">RegistrationRequestSearchViewModel</a></li><li><a href="resetCVV.html">resetCVV</a></li><li><a href="resetGiftCardPin.html">resetGiftCardPin</a></li><li><a href="resetPaymentDetails.html">resetPaymentDetails</a></li><li><a href="ReturnItem.html">ReturnItem</a></li><li><a href="ReturnViewModel.html">ReturnViewModel</a></li><li><a href="scheduledOrderList.html">scheduledOrderList</a></li><li><a href="SearchRestClient.html">SearchRestClient</a></li><li><a href="ServerData.html">ServerData</a></li><li><a href="UserViewModel.html">UserViewModel</a></li><li><a href="WidgetViewModel.html">WidgetViewModel</a></li><li><a href="WishlistContentViewModel.html">WishlistContentViewModel</a></li></ul><h3>Namespaces</h3><ul><li><a href="ko.bindingHandlers.html">bindingHandlers</a></li><li><a href="ko.extenders.html">extenders</a></li><li><a href="koValidation.html">koValidation</a></li></ul><h3>Global</h3><ul><li><a href="global.html#addItemToPurchaseList">addItemToPurchaseList</a></li><li><a href="global.html#callWidgetMethodIfApplicable">callWidgetMethodIfApplicable</a></li><li><a href="global.html#CartViewModel#deleteParticularIncompleteOrdersDeletesanincompleteorderbyorderId">CartViewModel#deleteParticularIncompleteOrdersDeletes an incomplete order by orderId</a></li><li><a href="global.html#CCEETagProcessor">CCEETagProcessor</a></li><li><a href="global.html#doesSiteExist">doesSiteExist</a></li><li><a href="global.html#fetchSkuDetailsListError">fetchSkuDetailsListError</a></li><li><a href="global.html#fetchSkuDetailsListSuccess">fetchSkuDetailsListSuccess</a></li><li><a href="global.html#formatSiteText">formatSiteText</a></li><li><a href="global.html#handleInitiateEditSuccess">handleInitiateEditSuccess</a></li><li><a href="global.html#isModified">isModified</a></li><li><a href="global.html#isValidDeterminewhetherornotthepaymentdetailsobjectisvalidbasedonthevalidityofitscomponentparts.Thiswillnotcauseerrormessagestobedisplayedforanyobservablevaluesthatareunchangedandhaveneverreceivedfocusontherelatedformfield(s).">isValidDetermine whether or not the payment details object is validbased on the validity of its component parts. This will notcause error messages to be displayed for any observable valuesthat are unchanged and have never received focus on the related form field(s).</a></li><li><a href="global.html#justFocused">justFocused</a></li><li><a href="global.html#mapProperties">mapProperties</a></li><li><a href="global.html#MENU_CLOSE_TIMEOUT">MENU_CLOSE_TIMEOUT</a></li><li><a href="global.html#populateData">populateData</a></li><li><a href="global.html#populateProductData">populateProductData</a></li><li><a href="global.html#reset">reset</a></li><li><a href="global.html#resetModified">resetModified</a></li><li><a href="global.html#Resetsstylingforthelazilyloadedimage">Resets styling for the lazily loaded image</a></li><li><a href="global.html#Setsupstylingfortheimagetobelazilyloaded">Sets up styling for the image to be lazily loaded</a></li><li><a href="global.html#ShopperContextViewModel">ShopperContextViewModel</a></li><li><a href="global.html#thelistofpropertiestoignorewhilecopyingdynamicpropertiestoaddressobject">the list of properties to ignore while copying dynamic properties to address object</a></li><li><a href="global.html#validatePaymentDetailsForceallrelevantmemberobservablestoperformtheirvalidationnow&displaytheerrors(ifany)">validatePaymentDetailsForce all relevant member observables to perform theirvalidation now & display the errors (if any)</a></li><li><a href="global.html#WidgetQueue">WidgetQueue</a></li></ul>
+</nav>
+
+<br clear="both">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.0</a> on Wed Feb 26 2020 18:22:21 GMT+0530 (IST)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

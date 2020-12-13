@@ -1,0 +1,1643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: Dynamo/Client/Store/web/store.war/shared/js/ccLibs/cc-ko-oj-extensions.js</title>
+    
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+    
+    <h1 class="page-title">Source: Dynamo/Client/Store/web/store.war/shared/js/ccLibs/cc-ko-oj-extensions.js</h1>
+    
+    
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source"><code>/**
+ * @fileoverview General knockout extensions written for Cloud Commerce
+ * Agent and admin Application which are having dependency with ojvalidation
+ */
+/*global Image, $, window, setTimeout: false */
+define('ccKoOjExtensions',['knockout', 'CCi18n',
+                            'dateTimeUtils','numberFormatHelper','currencyHelper','ojs/ojcore', 'ojs/ojinputtext', 'ojs/ojvalidation'],
+function (ko, CCi18n, dateTimeUtils, numberFormatHelper, currencyHelper, ojs) {
+
+  "use strict";
+
+  (function() {
+
+    var validateOjetDate, validateOjetTime,setValuesFromObservable, validate,
+        togglePasswordVisibility, setPasswordVisible, clickOrKeydownToUpdatePassword,
+        blurPasswordField, keyUpInPasswordField, addonFocusInput, clearValueFunction= true;
+    
+    var PROPERTY_EDITOR_PREFIX = 'CC-propertyEditor-';
+
+   
+   /**
+    * Set the values of the bg 1
+    * @private
+    * @function
+    * @name ko.bindingHandlers.propertyEditor#setValuesFromObservable
+    * @param {Observable&lt;Object>} pObservable Observable data source.
+    * @param {Object} pViewModel
+    */
+   setValuesFromObservable = function(pObservable, pViewModel) {
+     var rules, rule, type, ii;
+
+     type = ko.utils.unwrapObservable(pViewModel.type);
+     pViewModel.prefix = pViewModel.prefix || pObservable.prefix;
+     pViewModel.unit = pViewModel.unit || pObservable.unit;
+
+     if(!type &amp;&amp; pViewModel.values) {
+       type = 'radio';
+     }
+
+     if(pObservable.rules) {
+       rules = pObservable.rules();
+       for(ii = 0; ii &lt; rules.length; ii += 1) {
+         rule = rules[ii];
+
+         if(rule.rule === 'required' &amp;&amp; rule.params &amp;&amp;
+           (!rule.condition || rule.condition()) &amp;&amp;
+           pViewModel.required !== false) {
+           pViewModel.required = true;
+         }
+
+         if(!type) {
+           switch(rule.rule) {
+             case 'number':
+               type = 'number';
+               break;
+             case 'date':
+               type = 'date-ojet';
+               break;
+             case 'bool':
+               type = 'checkbox';
+               break;
+           }
+         }
+       }
+     }
+
+     if(!ko.utils.unwrapObservable(pViewModel.type)) {
+       pViewModel.type = type || 'shortText';
+     }
+
+     if(!pViewModel.label) {
+       pViewModel.label = pObservable.label;
+     }
+   };
+   
+   /**
+    * This function takes care of showing and hiding the inline messages
+    * and takes care of validation for ojet dates for required and valid dates.
+    * @private
+    * @function
+    * @name ko.bindingHandlers.propertyEditor#validateOjetDate
+    */
+   validateOjetDate = function() {
+     var valid = true;
+     var inputText = $('#'+this.idBase +'field').val();
+     if(inputText === '') {
+       $('#'+this.idBase +'controlGroup .cc-required-message').css('display', 'inline-block');
+     } else {
+       $('#'+this.idBase +'controlGroup .cc-required-message').css('display', 'none');
+     }
+     valid = dateTimeUtils.validateDate(inputText);
+     if(valid === false) {
+       $('#'+this.idBase +'controlGroup .cc-invalid-date').css('display', 'inline-block');
+     } else {
+       $('#'+this.idBase +'controlGroup .cc-invalid-date').css('display', 'none');
+     }
+   };
+
+   /** This function takes care of changing the time to 00:00 in case the
+    * time input by user is not a valid time
+    * @private
+    * @function
+    * @name ko.bindingHandlers.propertyEditor#validateOjetTime
+    */
+   validateOjetTime = function() {
+     var valid = true;
+     var inputText = $('#'+this.idBase +'field').val();
+     valid = dateTimeUtils.validateTime(inputText);
+     if(valid === false) {
+       $('#'+this.idBase +'field').val('T00:00:00');
+       this.property('T00:00:00');
+     }
+   };  
+   
+   /**
+    * Determine whether or not the current Address object is valid
+    * based on the validity of its component parts. This will not
+    * cause error messages to be displayed for any observable values
+    * that are unchanged and have never received focus on the
+    * related form field(s).
+    * @private
+    * @function
+    * @name ko.bindingHandlers.propertyEditor#validate
+    * @return {boolean} true if address is valid, otherwise false.
+    */
+   validate = function(data, event){
+     var prop;
+
+     // set the appropriate property to validate
+     if(this.type === 'currencyMap') {
+       prop = this.property()[data.id];
+     } else {
+       prop = this.property;
+     }
+
+     // Temporary change to get around validation on cart layout settings
+     if(prop != undefined &amp;&amp; !prop.isModified() &amp;&amp; !prop.isValid()) {
+       prop.isModified(true);
+       prop.forcedModified = true;
+     } else if(prop &amp;&amp; prop.forcedModified &amp;&amp; prop()) {
+       prop.forcedModified = false;
+     }
+   };
+
+   
+
+   /**
+    * Focus on input from input addon (or any element within a given property editor)
+    * @private
+    * @function
+    * @name ko.bindingHandlers.propertyEditor#addonFocusInput
+    * @param {string} elementId ID of property editor form field
+    */
+   addonFocusInput = function(elementId){
+     $('#'+elementId).focus();
+   };
+
+   /**
+    * Toggle visibility of a password field.
+    * @private
+    * @function
+    * @name ko.bindingHandlers.propertyEditor#togglePasswordVisibility
+    * @param {string} elementId ID of a field of type password to be toggled between obscured and clear
+    * @param {Object} event Click event on hide/reveal button
+    */
+   togglePasswordVisibility = function(elementId, event) {
+     var passwordEl = $('#' + elementId).get(0);
+     var toggle = $('#' + event.target.id);
+     if(passwordEl.type == 'text') {
+       setPasswordVisible(passwordEl, toggle, false);
+     } else {
+       setPasswordVisible(passwordEl, toggle, true);
+     }
+   };
+
+   /**
+    * Set password visibility and toggle hide/reveal button.
+    * @private
+    * @function
+    * @name ko.bindingHandlers.propertyEditor#setPasswordVisible
+    * @param {HTMLElement} passwordEl HTML element for password field
+    * @param {HTMLElement} toggle HTML element for hide/reveal button.
+    * @param {boolean} visible Visibility to be applied to password field
+    */
+   setPasswordVisible = function(passwordEl, toggle, visible) {
+     if (visible) {
+       passwordEl.type = 'text';
+       toggle.text(CCi18n.t('ns.common:resources.hideText'));
+     } else {
+       passwordEl.type = 'password';
+       toggle.text(CCi18n.t('ns.common:resources.revealText'));
+     }
+   };
+
+   /**
+    * Change the display of input password field on a click or keydown event.
+    * @private
+    * @function
+    * @name ko.bindingHandlers.propertyEditor#clickOrKeydownToUpdatePassword
+    * @param {Object} data Object containing data passed to the event handler
+    * @param {Object} event Click event from input field
+    */
+   clickOrKeydownToUpdatePassword = function(data, event) {
+     var updateMsg = $(event.target);
+     var inputPasswordField = $(event.target).prev('input');
+     var acceptKeyEvent = event.which === 1 || event.which === 32 || event.which === 13;
+     if (acceptKeyEvent) {
+       if (updateMsg.css("display") == "block" || updateMsg.css("display") == "inline-block") {
+         updateMsg.toggle(false);
+         $(event.target).prev('input').attr('disabled', false);
+         inputPasswordField.select();
+         inputPasswordField.val('');
+         inputPasswordField.focus();
+       }
+     } else if(event.which === 9){
+       return true;
+     }
+   };
+
+   /**
+    * Change the display of input password field on a blur event.
+    * @private
+    * @function
+    * @name ko.bindingHandlers.propertyEditor#blurPasswordField
+    * @param {boolean} hasPassword flag indicating if the field has a password
+    * @param {BlurEvent} event blur event from input field
+    */
+   blurPasswordField = function(hasPassword, event) {
+     var inputPasswordField = $(event.target);
+     var clickToUpdateButton = inputPasswordField.next('input');
+     if (inputPasswordField.val().length === 0) {
+       if (hasPassword) {
+         inputPasswordField.attr('disabled', 'true');
+         clickToUpdateButton.toggle(true);
+       }
+       this.validate();
+     }
+   };
+   
+   /**
+    * Function to clear/null the value of a property editor
+    * @param {Object} data Additional data for currencyMap observables
+    **/
+   clearValueFunction = function(data, data2) {
+
+
+     if(this.type === 'currencyMap' &amp;&amp; data) {
+       this.property()[data.id](null);
+       $('#' + this.property()[data.id].formId).focus();
+     } else {
+       this.property(null);
+       $('#' + this.property.formId).focus();
+     }
+   };
+   
+   
+   /**
+    * The propertyEditor binding provides a way to easily display a
+    * form input field for any arbitrary property based on a provided
+    * type, label, and editor. The 'property' attribute of the binding will
+    * be the observable that is updated by the generated form field.
+    * @public
+    * @class ko.bindingHandlers.propertyEditor
+    */
+   ko.bindingHandlers.propertyEditor = {
+     /**
+      * The logic run once to initialize the binding for this element.
+      * Indicates that this binding controls descendant bindings.
+      * @private
+      * @function
+      * @param {HTMLElement} element The DOM element attached to this binding
+      * @param {function(): object} valueAccessor A function that returns
+      * all of the values associated with this binding.
+      */
+     init: function(element, valueAccessor) {
+       var values = ko.utils.unwrapObservable(valueAccessor());
+       return {'controlsDescendantBindings' : true};
+     },
+
+     /**
+      * Update is run whenever an observable in the binding's
+      * properties changes. Attempts to load the desired image from
+      * the provided source. If the image fails to load the fallback
+      * image &amp; text is instead used.
+      * @private
+      * @function
+      * @param {object} element The DOM element attached to this binding.
+      * @param {function(): object} valueAccessor A function that returns
+      * all of the values associated with this binding.
+      * @param {function(): object} allBindingsAccessor Object containing
+      * information about other bindings on the same HTML element.
+      * @param {object} viewModel The viewModel that is the current
+      * context for this binding.
+      * @param {object} bindingContext The binding hierarchy for
+      * the current context.
+      */
+     update: function(pElement, pValueAccessor, pAllBindingsAccessor, pViewModel, pBindingContext) {
+       var values = ko.utils.unwrapObservable(pValueAccessor()), date, minDate, numericJetValidation= ko.observable(true),
+         editorViewModel, templateValues, key, property, clearValue,
+         id, formElement, type, numericValidationErrorMessage = CCi18n.t('ns.common:resources.numberValidation');
+       //Values must have a property that's an observable
+       //and a type as a minimum requirement
+
+       if(!values.property || !ko.isObservable(values.property)) {
+         return;
+       }
+
+       property = values.property;
+       // make the property validatable to work better with the property editor
+       // validate() function and unsaved changes functionality
+       property.extend({validatable: true});
+
+       id = ko.utils.unwrapObservable(values.id);
+       type = ko.utils.unwrapObservable(values.type);
+       date = new Date();
+       minDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+       clearValue = values.clearValue ? false : true;
+
+       // ensure that the property being used in a property editor is validatable
+       // regardless of whether validation is required or not.
+       // necessary for 2 reasons:
+       // 1] will avoid a breaking error in ccValidation binding where valueAccessor().error()
+       // is not a function
+       // 2] allows form handler to check isModified state on all properties
+       // for unsaved changes dialog to work properly
+       property.extend({ validatable: true });
+
+       //Create a viewModel to be rendered by the propertyEditor template.
+       //Copy all passed attributes to the editorViewModel.
+       editorViewModel = {
+         writable: ko.observable(true), //Default writable status
+         visible: ko.observable(true), //Default visibility status
+         currentDate: date, //Default current date
+         minDate: minDate,
+         valueUpdate: 'change', //Default valueUpdate
+         numericValidationErrorMessage: numericValidationErrorMessage,
+       };
+
+       for(key in values) {
+         if(values.hasOwnProperty(key)) {
+           if(key === 'writable' &amp;&amp; !ko.isObservable(values[key])){
+             editorViewModel.writable(values[key]);
+           }
+           else {
+             editorViewModel[key] = values[key];
+           }
+         }
+       }
+       // Catches validation errors for jet's input number
+       var customJetOptionChangeListener = function(event, data) {
+         var prop = null;
+         var context = ko.contextFor(this);
+         var currencyMap;
+         if (context.$parent) {
+           currencyMap = context.$parent.type === 'currencyMap' ? true : false;
+         } else {
+           currencyMap = context.$parents[1].type === 'currencyMap' ? true : false;
+         }
+
+         if(currencyMap) {
+           prop = context.$parent.property()[ko.dataFor(this).id];
+         } else {
+           prop = ko.dataFor(this);
+         }
+
+         prop.numericJetValidation(true);
+
+         if (data['option'] === "rawValue" || data['option'] === "valid") {
+           var valid = $(event.target).ojInputText("isValid");
+           if (!valid) {
+             prop.numericJetValidation(false);
+           } else {
+             prop.numericJetValidation(true);
+           }
+         } else {
+           prop.numericJetValidation(true);
+         }
+       };
+
+       // Convert the numbers to appropriate fractions so the number displayed and what gets stored matches.
+       var computedValueWithFractions = ko.pureComputed({
+         read : function() {
+           return property();
+         },
+         write : function(value) {
+           var fractionToFixed = editorViewModel.fractionalDigits, isADigit = false;
+           if(ko.utils.unwrapObservable(editorViewModel.type) === "digit") {
+             isADigit = true;
+           }
+           if (value != undefined) {
+             if(!fractionToFixed) {
+               var decimals = value.toString().split(".");
+               if(decimals &amp;&amp; decimals.length == 2){
+                 if (isADigit) {
+                   property(value.toFixed(0));
+                   return;
+                 }
+                 if(decimals[1].length > 3) {
+                   property(value.toFixed(3));
+                 } else {
+                   property(value);
+                 }
+               } else {
+                 property(value);
+               }
+             } else {
+               property(value.toFixed(fractionToFixed));
+             }
+           } else {
+             property(value);
+           }
+         }
+       });
+
+       setValuesFromObservable(property, editorViewModel);
+
+       if (values.writable === false) {
+         editorViewModel.writable(false);
+       }
+
+       // Help text (if any) is displayed when there isn't a status message
+       editorViewModel.helpText = ko.observable(ko.utils.unwrapObservable(values.helpText));
+
+       // Returns true if the field (like product name) is required, but
+       // user has modified it and left it blank. Otherwise returns false.
+       editorViewModel.isRequiredButMissing = ko.computed(function() {
+         return (editorViewModel.required &amp;&amp; ko.isObservable(editorViewModel.property.isModified) &amp;&amp; editorViewModel.property.isModified() &amp;&amp; editorViewModel.property()==null);
+       }, editorViewModel);
+
+       editorViewModel.titleText = ko.computed(function() {
+         var newTitleText = '';
+
+         if (editorViewModel.property.hasOwnProperty('isValid')) {
+           if (editorViewModel.property.isValid()) {
+             newTitleText = editorViewModel.helpText();
+           }
+           else {
+             newTitleText = editorViewModel.property.error;
+           }
+         }
+         else {
+           newTitleText = editorViewModel.helpText();
+         }
+
+         return newTitleText;
+       }, editorViewModel);
+
+       //Setup template values which mimic the binding of a template.
+       templateValues = {};
+       var typeEditor = ko.utils.unwrapObservable(editorViewModel.type);
+       // Passing appropriate fractionaldigits arguments For prices and digit type of entries for the jet inut number converter
+       //For rest of the decimal numbers, jet uses default maxFractionalDigits = 3 and minFractionalDigits = 0
+       if (typeEditor === "currency" || typeEditor === "currencyMap" || typeEditor === "digit") {
+         if (typeEditor == "currency" || typeEditor === "currency") {
+           editorViewModel.fractionalDigits = currencyHelper.currencyObject().fractionalDigits;
+         } else {
+           editorViewModel.fractionalDigits = 0;
+           editorViewModel.numericValidationErrorMessage = CCi18n.t('ns.common:resources.digitValidation');
+         }
+
+         if(typeEditor !== 'currencyMap') {
+           typeEditor = "number";
+         }
+
+       }
+       if (typeEditor === "enumerated" &amp;&amp; editorViewModel.propertyValuesValue) {
+         typeEditor = "complex-enumerated";
+       }
+       templateValues.name = PROPERTY_EDITOR_PREFIX + typeEditor;
+
+       /*
+        * The following editorViewModel properties are not observable
+        * because they are only expected to change when the parent
+        * binding changes (which will re-render the template anyways).
+        */
+
+       // Try to get the id of the nearest form.
+       var nearestUsefulId = $(pElement).closest('form').attr('id');
+
+       // If this didn't work out, try for id of nearest div.
+       if (!nearestUsefulId) {
+         nearestUsefulId = $(pElement).parent().attr('id');
+       }
+
+       // Set up a base ID to prefix all elements displayed in the propertyEditor template using the base ID we got.
+       editorViewModel.idBase = nearestUsefulId + '-' + templateValues.name + '-' + (id ? id + '-' : '');
+
+       if(typeEditor === 'currencyMap') {
+         for(key in property()) {
+           if(property().hasOwnProperty(key)) {
+             property()[key].formId = editorViewModel.idBase + key + '-field';
+           }
+         }
+       } else {
+         property.formId = editorViewModel.idBase + 'field';
+       }
+
+       //Add the view model to the templateValues.
+       templateValues.data = editorViewModel;
+
+       // templateValues['if'] = ko.utils.unwrapObservable(values['if']);
+       templateValues['if'] = ko.utils.unwrapObservable(values['if']) ||
+         typeof ko.utils.unwrapObservable(values['if']) === 'undefined';
+
+       //The property is required if either the property itself or the binding claims so.
+       editorViewModel.required = ko.utils.unwrapObservable(editorViewModel.required || property.required);
+
+       // if this is a currencyMap we need to apply to the child observables
+       if(editorViewModel.type === 'currencyMap') {
+         $.each(editorViewModel.property(), function(ii) {
+           editorViewModel.property()[ii].validate = validate;
+           editorViewModel.property()[ii].numericJetValidation = ko.observable(true);
+           editorViewModel.property()[ii].addonFocusInput = addonFocusInput;
+         });
+       } else {
+         editorViewModel.validate = validate;
+         editorViewModel.numericJetValidation = numericJetValidation;
+         editorViewModel.addonFocusInput = addonFocusInput;
+       }
+
+       editorViewModel.clearValueFunction = clearValueFunction;
+
+       if (editorViewModel.type === "revealablePassword") {
+         editorViewModel.togglePasswordVisibility = togglePasswordVisibility;
+         editorViewModel.clickOrKeydownToUpdatePassword = clickOrKeydownToUpdatePassword;
+         editorViewModel.blurPasswordField = blurPasswordField;
+         editorViewModel.keyUpInPasswordField = keyUpInPasswordField;
+       } else if(editorViewModel.type === "number" || editorViewModel.type === "currency" || editorViewModel.type === "digit" || ko.isObservable(editorViewModel.type) &amp;&amp; editorViewModel.type() === "number") {
+         editorViewModel.customJetOptionChangeListener = customJetOptionChangeListener;
+         editorViewModel.computedValueWithFractions = computedValueWithFractions;
+       } else if(editorViewModel.type === "currencyMap") {
+         $.each(editorViewModel.property(), function(ii) {
+           editorViewModel.property()[ii].customJetOptionChangeListener = customJetOptionChangeListener;
+           editorViewModel.property()[ii].computedValueWithFractions = computedValueWithFractions;
+         });
+       }
+
+       if((editorViewModel.type === "date-ojet") || (editorViewModel.type === "time-ojet") || (editorViewModel.type === "date-time-ojet")) {
+         editorViewModel.validateOjetDate = validateOjetDate;
+         editorViewModel.validateOjetTime = validateOjetTime;
+         editorViewModel.dateTitleText = CCi18n.t('ns.common:resources.datePicker');
+         editorViewModel.timeTitleText = CCi18n.t('ns.common:resources.timePicker');
+       } else if (ko.isObservable(editorViewModel.type) &amp;&amp; ((editorViewModel.type() === "date-ojet") || (editorViewModel.type() === "time-ojet") || (editorViewModel.type === "date-time-ojet"))) {
+         editorViewModel.validateOjetDate = validateOjetDate;
+         editorViewModel.validateOjetTime = validateOjetTime;
+         editorViewModel.dateTitleText = CCi18n.t('ns.common:resources.datePicker');
+         editorViewModel.timeTitleText = CCi18n.t('ns.common:resources.timePicker');
+       }
+       //Render the template
+       ko.bindingHandlers.template.update(pElement,
+         function() { return templateValues;},
+         pAllBindingsAccessor, editorViewModel, pBindingContext);
+     }
+   };
+   
+   /**
+    * @public
+    * @class The dateTime binding uses date-time-utils.js helper class to format and localize the date.
+    * The input can be given in any of the standard formats
+    * @example
+    * &lt;div data-bind="dateTime: {date: '2014-08-22T21:25:00.000Z', format: 'datetime', dateFormat: 'short', timeFormat: 'short'}">&lt;/div>
+    */
+   ko.bindingHandlers.ccDateTime = {
+     update : function(element, valueAccessor, allBindingsAccessor, viewModel, bindingContext) {
+       var bindingValue = valueAccessor();
+       var value = ko.utils.unwrapObservable(bindingValue);
+       var uDate = ko.utils.unwrapObservable(value.date);
+       var formatType = ko.utils.unwrapObservable(value.format);
+       var displayDateFormat = ko.utils.unwrapObservable(value.dateFormat);
+       var displayTimeFormat = ko.utils.unwrapObservable(value.timeFormat);
+       var returnedDateTimeDisplay = ko.utils.unwrapObservable(value.date);
+       returnedDateTimeDisplay = dateTimeUtils.getFormattedDateTime(uDate, formatType, displayDateFormat, displayTimeFormat);
+       $(element).text(returnedDateTimeDisplay);
+     }
+   };
+  }());
+  
+  (function() {
+    //X and Y margins control the dynamic moving of which side
+    //the tooltip appears on based on where it is in the window.
+    var X_MARGIN_SMALL = 200, X_MARGIN_LARGE = 300,
+        Y_MARGIN_SMALL = 100, Y_MARGIN_LARGE = 200,
+        visible, closeVisible, getPlacement, closePopover, handleExternalEvent;
+
+    /**
+     * Handles user action on external elements (clicks or focuses)
+     * Causes the popover to close.
+     */
+    handleExternalEvent = function(e) {
+      if($(e.target).closest('.popover').length === 0) {
+        closeVisible();
+      }
+    };
+
+    /**
+     * Closes the visible popover
+     */
+    closeVisible = function() {
+      if(visible) {
+        visible.data('bs.popover').tip().off('keydown');
+        visible.popover('destroy');
+        visible = null;
+        $(document).off('click', handleExternalEvent);
+        $(document).off('focusin', handleExternalEvent);
+      }
+    };
+
+    /**
+     * Gets the ultimate placement of the tooltip based on the window
+     */
+    getPlacement = function(placement, position) {
+      var top, left, result, $win;
+      $win = $(window);
+      top = position.top - $win.scrollTop();
+      left = position.left - $win.scrollLeft();
+
+      //Top/Bottom replacement based on location on the screen
+      if(top &lt; Y_MARGIN_SMALL || (top &lt; Y_MARGIN_LARGE &amp;&amp; placement === "top")) {
+        result = "bottom";
+      } else if(top > $win.height() - Y_MARGIN_SMALL ||
+                (top > $win.height() - Y_MARGIN_LARGE &amp;&amp; placement === "bottom")) {
+        result = "top";
+      }
+
+      //Left/Right replacement based on location on the screen
+      if(left &lt; X_MARGIN_SMALL || (left &lt; X_MARGIN_LARGE &amp;&amp; placement === "left")) {
+        result = "right";
+      } else if (left > $win.width() - X_MARGIN_SMALL ||
+                 (left > $win.width() - X_MARGIN_LARGE &amp;&amp; placement === "right")) {
+        result = "left";
+      }
+
+      return result || placement;
+    };
+
+   /**
+    * @public
+    * @class Allows for an in-line popup editor for values.
+    * Uses the Bootstrap 'popovers' functionality:
+    * &lt;a href="http://getbootstrap.com/javascript/#popovers">http://getbootstrap.com/javascript/#popovers&lt;/a>.
+    * &lt;h2>Parameters:&lt;/h2>
+    * &lt;ul>
+    *   &lt;li>&lt;code>{String} trigger='manual'&lt;/code> - The trigger event which will display the popover.&lt;/li>
+    *   &lt;li>&lt;code>{String} class&lt;/code> - The name of the CSS class to be given to the popover content DIV.&lt;/li>
+    *   &lt;li>&lt;code>{String} container='body'&lt;/code> - The element to append the popover content DIV to.&lt;/li>
+    *   &lt;li>&lt;code>{String} placement='right'&lt;/code> - The placement of the popover DIV: top | bottom | left | right | auto.&lt;/li>
+    *   &lt;li>&lt;code>{String} id&lt;/code> - The id of the popover.&lt;/li>
+    *   &lt;li>&lt;code>{String} [title]&lt;/code> - The title of the popover.&lt;/li>
+    *   &lt;li>&lt;code>{String} [focusElement]&lt;/code> - The element to focus on when the popover is shown.&lt;/li>
+    *   &lt;li>&lt;code>{Observable} property&lt;/code> - The property to edit.&lt;/li>
+    *   &lt;li>&lt;code>{Object} validate&lt;/code> - The validation properties.&lt;/li>
+    *   &lt;li>&lt;code>{Observable} enumeratedValues&lt;/code> - The list of selectable values (the tags).&lt;/li>
+    *   &lt;li>&lt;code>{String} type&lt;/code> - The editor type. One of:
+    *   &lt;ul>
+    *    &lt;li>'enumerated'&lt;/li>
+    *     &lt;li>'longText'&lt;/li>
+    *     &lt;li>'number'&lt;/li>
+    *     &lt;li>'price'&lt;/li>
+    *     &lt;li>'shortText'&lt;/li>
+    *   &lt;/ul>
+    *   &lt;/li>
+    *   &lt;li>&lt;code>{boolean} [wideMode]&lt;/code> - Use a wider popover header?.&lt;/li>
+    * &lt;/ul>
+    * @example
+    * &amp;lt;div class="modal" data-bind="popeditor: {type: 'number', class: 'cc-pop-number',
+                      placement: 'bottom', validate: {required: true, digit: true, min: 0},
+                      property: stockLevel, title: 'stockLevel'}, text: stockLevel}"/>
+    */
+    ko.bindingHandlers.popeditor = {
+      /**
+        The logic runs once to initialize the binding for this element.
+        @private
+        @param {Object} element The DOM element attached to this binding.
+        @param {function(): object} valueAccessor A function that returns all of the values associated with this binding.
+        @param {function(): object} allBindingsAccessor Object containing information about other bindings on the same HTML element.
+        @param {Object} viewModel The viewModel that is the current context for this binding.
+        @param {Object} bindingContext The binding hierarchy for the current context.
+      */
+      init: function(element, valueAccessor, allBindingsAccessor, viewModel, bindingContext) {
+        var $element, options, model, values = valueAccessor(), jetValidation = ko.observable(true), editorType = values.type;
+ 
+        var tabTrap = ko.bindingHandlers.tabTrap;
+
+        //Set the popover options, many can be overwritten by the binding values, but some are static
+        //html is needed for the template to render,
+        //container is body to ensure popover works on all elements
+        //content is a div using the popover class which should set the z-index and height of the popover
+        //this is necessary to ensure the popover positions correctly and that it doesn't pop-in awkwardly
+        options = {
+          html: true,
+          trigger: values.trigger || "manual",
+          content: "&lt;div class='"+ values['class'] +"'>&lt;/div>",
+          container: values.container || 'body',
+          placement: values.placement || "right"
+        };
+
+        $element = $(element);
+
+        // plgProperty is a means by which to decouple the currencyMap observables
+        // from the viewModel for the popeditor template
+        values.plgProperty = ko.observable(null);
+
+        if(editorType === 'currencyMap') {
+          var plgProperty = {};
+
+          $.each(values.property(), function(ii){
+            plgProperty[ii] = ko.observable(ko.utils.unwrapObservable(this)).extend(values.validate);
+            plgProperty[ii].jetValidation = ko.observable(true);
+          });
+
+          values.plgProperty(plgProperty);
+        }
+
+
+        if(editorType !== 'currencyMap') {
+          values.validate.validatable = true;  
+        }
+
+        //Model used to render the popover template. Includes functions for saving and canceling the popover
+        model = bindingContext.extend({
+          id: values.id,
+          title: values.title,
+          focusElement: values.focusElement,
+          property: ko.observable(ko.utils.unwrapObservable(values.property)).extend(values.validate),
+          plgProperty: ko.observable(ko.utils.unwrapObservable(values.plgProperty)).extend(values.validate),
+          enumeratedValues: ko.observable(ko.utils.unwrapObservable(values.enumeratedValues)),
+          jetValidation: ko.observable(true),
+          currencyHelper: currencyHelper,
+          priceListGroups: values.priceListGroups,
+          type: values.type,
+
+          save: function() {
+            if(model.type !== 'currencyMap' &amp;&amp; (model.property.isValid() &amp;&amp; jetValidation())) {
+              //Copies the edit value to the base model value
+              if(values.property() != model.property()) {
+                values.property(model.property());
+              }
+
+              closeVisible();
+              if($element.filter(":focusable").length > 0) {
+                $element.focus();
+              } else {
+                $element.find(":focusable").focus();
+              }
+
+              // if nothing has changed, don't notify
+              if(model.property.isModified()) {
+                values.property.notifySubscribers(values.property(), "valueSubmitted");
+              }
+              return false;
+            }
+
+            if(model.type === 'currencyMap') {
+              var plgIsModified = false;
+              var plgIsValid = false;
+
+              $.each(model.plgProperty(), function(ii) {
+                if(this.isModified()) {
+                  plgIsModified = this.isModified();
+                  plgIsValid = this.isValid();
+                }
+              });
+
+
+              if (plgIsModified &amp;&amp; plgIsValid) {
+                values.property(model.plgProperty());
+                values.property.notifySubscribers(model.$parent, "valueSubmitted");
+                model.close();
+              } else if(plgIsModified &amp;&amp; !plgIsValid) {
+                return false;
+              }
+            }
+          },
+
+          //The cancel/close function for a manual close button
+          close: function() {
+            closeVisible();
+            if($element.filter(":focusable").length > 0) {
+              $element.focus();
+            } else {
+              $element.find(":focusable").focus();
+            }
+            return false;
+          },
+
+          //Focus on the element after the template has loaded
+          focus: function(elements) {
+            if(model.focusElement) {
+              $(elements).find(model.focusElement).focus();
+            } else {
+              $(elements).find(":focusable").focus();
+            }
+
+            // constrain tabbing
+            tabTrap.constrain($('.popover.in'));
+          },
+
+           //Catches jet's validation errors for non numric entries
+          customJetOptionChangeListener: function(event, data) {
+            var prop = null,
+                context = ko.contextFor(this),
+                currencyMap = context.type === 'currencyMap' ? true : false;
+
+            if(currencyMap) {
+              prop = context.plgProperty()[ko.dataFor(this).id];
+            } else {
+              // prop = ko.dataFor(this);
+              prop = context;
+            }
+
+            prop.jetValidation(true);
+
+            if (data['option'] === "messagesShown") {
+              var valid = $(event.target).ojInputText("isValid");
+              if (!valid) {
+                prop.jetValidation(false);
+              } else {
+                prop.jetValidation(true);
+              }
+            } else {
+              prop.jetValidation(true);
+            }
+          },
+          
+          // Convert the numbers to appropriate fractions so the number displayed and what gets stored matches.
+          computedValueWithFractions : ko.pureComputed({
+            read : function() {
+              return model.property();
+            },
+            write : function(value) {
+              if (value != undefined) {
+                if(editorType === "number") {
+                  model.property(value.toFixed(0));
+                } else if(editorType === "price") {
+                  model.property(value.toFixed(currencyHelper.currencyObject().fractionalDigits));
+                }
+              } else  {
+                model.property(value);
+              }
+            }
+          }),
+
+          //Render the popover model using the page's localization resources
+          //TODO: Fix to support storefront &amp; admin with localization
+          // commonResources: bindingContext.$root.commonResources,
+          // pageResources: bindingContext.$root.pageResources
+        });
+
+        //Click handler for the element to open or close the tooltip from the anchor element
+        $element.click(function(e) {
+          var $tip, position, placement, focusHandler;
+
+          e.preventDefault();
+          //Determine placement based off of screen position of the element
+          options.placement = getPlacement(values.placement, $element.offset());
+
+          $element.popover(options); //Remake the popover using updated options
+          $tip = $element.data('bs.popover').tip();
+
+          //'in' is only present for a visible tip
+          if($tip.hasClass('in')) {
+            closeVisible();
+            if($element.filter(":focusable").length > 0) {
+              $element.focus();
+            } else {
+              $element.find(":focusable").focus();
+            }
+          } else {
+            //Close any other open popover
+            closeVisible();
+
+            //Reset the edit value
+            if(model.type === 'currencyMap') {
+
+             var plgProperty = {};
+
+              $.each(values.property(), function(ii){
+                plgProperty[ii] = ko.observable(ko.utils.unwrapObservable(this)).extend(values.validate);
+                plgProperty[ii].jetValidation = ko.observable(true);
+              });
+
+              values.plgProperty(plgProperty);
+
+              model.plgProperty(ko.utils.unwrapObservable(values.plgProperty)).extend(values.validate);
+
+              $.each(model.plgProperty(), function(ii) {
+                model.plgProperty()[ii].extend({validatable: true});
+                model.plgProperty()[ii].errors = null;
+                model.plgProperty()[ii].isModified(false);
+                model.plgProperty()[ii].forcedModified = false;
+              });
+            } else {
+              model.property(ko.utils.unwrapObservable(values.property));
+              model.property.errors = null;
+              model.property.isModified(false);
+              model.property.forcedModified = false;
+            }
+
+            //Add the class and template to the popover
+            $tip.addClass(values['class']);
+            $tip.children('.popover-content').attr('data-bind', "template: {name: '" + values.type + "', templateUrl: 'templates/popeditors', afterRender: focus}");
+
+            if (values.wideMode) {
+              // Add the wide header template to the popover
+              $tip.children('.popover-title').attr('data-bind', "template: {name: 'wide-header', templateUrl: 'templates/popeditors'}");
+
+              // add the wide class
+              $tip.addClass("cc-pop-wide");
+
+            } else {
+              // Add the header template to the popover
+              $tip.children('.popover-title').attr('data-bind', "template: {name: 'header', templateUrl: 'templates/popeditors'}");
+            }
+
+            //Handle escape key to hide popover
+            $tip.keydown(function(event) {
+              //27 is escape
+              if(event.which === 27) {
+                closeVisible();
+                if($element.filter(":focusable").length > 0) {
+                  $element.focus();
+                } else {
+                  $element.find(":focusable").focus();
+                }
+              }
+            });
+
+            //Delay the event registration to prevent the current click event from firing handleExternalEvent
+            window.setTimeout(function() {
+              $(document).click(handleExternalEvent);
+              $(document).focusin(handleExternalEvent);
+            }, 1);
+
+            $element.popover('show'); //Show the popover
+            visible = $element;
+            ko.applyBindingsToDescendants(model, $tip[0]);//Render descendant template
+          }
+        });
+      }
+    };
+
+   /**
+    * @public
+    * @class the popover binding allows for a popover to be filled with a rendered template
+    * Uses the Bootstrap 'popovers' functionality:
+    * &lt;a href="http://getbootstrap.com/javascript/#popovers">http://getbootstrap.com/javascript/#popovers&lt;/a>.
+    * &lt;h2>Parameters:&lt;/h2>
+    * &lt;ul>
+    *   &lt;li>&lt;code>{String} trigger='click'&lt;/code> - The trigger event which will display the popover.&lt;/li>
+    *   &lt;li>&lt;code>{String} class&lt;/code> - The name of the CSS class to be given to the popover content DIV.&lt;/li>
+    *   &lt;li>&lt;code>{String} container='body'&lt;/code> - The element to append the popover content DIV to.&lt;/li>
+    *   &lt;li>&lt;code>{String} placement='right'&lt;/code> - The placement of the popover DIV: top | bottom | left | right | auto.&lt;/li>
+    *   &lt;li>&lt;code>{Observable} property&lt;/code> - The property to edit.&lt;/li>
+    *   &lt;li>&lt;code>{String} name&lt;/code> - The name of the template to be used for the content of the popover.&lt;/li>
+    *    &lt;li>&lt;code>{String} templateUrl&lt;/code> - The url of the content template.&lt;/li>
+    * &lt;/ul>
+    * @example
+    * &amp;lt;div class="modal" data-bind="popover: {class: 'cc-pop-number',
+                      placement: 'bottom', name: 'template-name', templateUrl: 'template/path'
+                      property: stockLevel}}"/>
+    */
+    ko.bindingHandlers.popover = {
+        /**
+         The logic runs once to initialize the binding for this element.
+         @private
+         @param {Object} element The DOM element attached to this binding.
+         @param {function(): object} valueAccessor A function that returns all of the values associated with this binding.
+         @param {function(): object} allBindingsAccessor Object containing information about other bindings on the same HTML element.
+         @param {Object} viewModel The viewModel that is the current context for this binding.
+         @param {Object} bindingContext The binding hierarchy for the current context.
+       */
+      init: function(element, valueAccessor, allBindingsAccessor, viewModel) {
+        var $element, options, model, values = valueAccessor();
+
+        //Set the popover options, many can be overwritten by the binding values, but some are static
+        //html is needed for the template to render,
+        //container is body to ensure popover works on all elements
+        //content is a div using the popover class which should set the z-index and height of the popover
+        //this is necessary to ensure the popover positions correctly and that it doesn't pop-in awkwardly
+        options = {
+          html: true,
+          trigger: values.trigger || "click",
+          content: "&lt;div class='"+ values['class'] +"'>&lt;/div>",
+          container: values.container || 'body',
+          placement: values.placement || "right"
+        };
+
+        $element = $(element);
+
+        model = {
+          model: values.model || viewModel,
+          save: function() {
+              if(model.property.isValid()) {
+                //Copies the edit value to the base model value
+                if(values.property() != model.property()) {
+                  values.property(model.property());
+                }
+
+                closeVisible();
+                if($element.filter(":focusable").length > 0) {
+                  $element.focus();
+                } else {
+                  $element.find(":focusable").focus();
+                }
+                values.property.notifySubscribers(values.property(), "valueSubmitted");
+                return false;
+              }
+            },
+
+            close: function() {
+                closeVisible();
+                if($element.filter(":focusable").length > 0) {
+                  $element.focus();
+                } else {
+                  $element.find(":focusable").focus();
+                }
+                return false;
+              },
+
+          //Focus on the element after the template has loaded
+          focus: function(elements) {
+            $(elements).find(":focusable").focus();
+
+            // constrain tabbing
+            tabTrap.constrain($('.popover.in'));
+          }
+        };
+
+        $element.click(function(e) {
+          var $tip, position, placement;
+
+          options.placement = getPlacement(values.placement, $element.offset());
+
+          $element.popover(options);
+          $tip = $element.data('bs.popover').tip();
+
+          closeVisible();
+          if(!$tip.hasClass('in')) {
+            $tip.children('.popover-content').attr('data-bind', "template: {name: '" + values.name +
+                   "', templateUrl: '" + values.templateUrl + "', afterRender: focus}");
+
+            //Handle escape key to hide popover
+            $tip.keydown(function() {
+              //27 is escape
+              if(event.which === 27) {
+                closeVisible();
+              }
+            });
+
+            //Delay the event registration to prevent the current click event from firing handleExternalEvent
+            window.setTimeout(function() {
+              $(document).click(handleExternalEvent);
+              $(document).focusin(handleExternalEvent);
+            }, 1);
+
+            $element.popover('show');
+            ko.applyBindingsToDescendants(model, $tip[0]);
+          }
+        });
+      }
+    };
+   
+  }());
+  
+  
+  /**
+   * @public
+   * @class The textCheck binding takes in a text value and checks it null status.
+   * Depending on other options passed in, the text (whether null or not) can be manipulated
+   * with a prepended string, or if null, replaced with a default string.
+   * &lt;p>
+   * The text will be formatted according to the 'type' attribute. 'percent' and 'number' types
+   * will be formatted to 2 decimal places. The 'price' type will be formatted using the
+   * CurrencyHelper helper class.
+   * 
+   * &lt;h2>Parameters:&lt;/h2>
+   * &lt;ul>
+   *   &lt;li>&lt;code>{Observable String} text&lt;/code> - The text property to be manipulated.&lt;/li>
+   *   &lt;li>&lt;code>{String} [type]&lt;/code> - The type of text attribute - one of 'price', 'percent', 'number' or 'digit'.&lt;/li>
+   *   &lt;li>&lt;code>{String} [prePend]&lt;/code> - The string to be prepended to the text value.&lt;/li>
+   *   &lt;li>&lt;code>{String} [nullReplace]&lt;/code> - The string to be substituted for a 'null' text value.&lt;/li>
+   *   &lt;li>&lt;code>{boolean} [prependNull]&lt;/code> - Prepend null strings?&lt;/li>
+   * &lt;/ul>
+   * 
+   * @see CurrencyHelper
+   * @example
+   * &amp;lt;span data-bind='textCheck: {text: myText, type: 'price', 
+   *   prePend: '$', nullReplace: '-', prependNull: true/false}'>&amp;lt;/span>
+   * &amp;lt;span data-bind='textCheck: {text: myText, type: 'percent', 
+   *   nullReplace: '-', prependNull: false}'>&amp;lt;/span>
+   */
+  ko.bindingHandlers.textCheck = {
+    /**
+      update is run whenever an observable in the binding's properties changes.
+      @private
+      @param {Object} element The DOM element attached to this binding.
+      @param {function(): object} valueAccessor A function that returns all of the values associated with this binding.
+      @param {function(): object} allBindingsAccessor Object containing information about other bindings on the same HTML element.
+      @param {Object} viewModel The viewModel that is the current context for this binding.
+      @param {Object} bindingContext The binding hierarchy for the current context.
+    */
+    update: function(element, valueAccessor, allBindingsAccessor, viewModel, bindingContext) {
+      var value = ko.utils.unwrapObservable(valueAccessor());
+      var text = ko.utils.unwrapObservable(value.text);
+      var type = ko.utils.unwrapObservable(value.type);
+      var prePend = ko.utils.unwrapObservable(value.prePend);
+      var nullReplace = ko.utils.unwrapObservable(value.nullReplace);
+      var prependNull = ko.utils.unwrapObservable(value.prependNull);
+
+      if((text || text === 0) &amp;&amp; !isNaN(parseFloat(text))) {
+        //pass price formatting into currencyHelper.handleFractionalDigits().
+        if(type == 'price' || type == 'percent' || type == 'number' || type == 'digit') {
+          var textToNumber;
+          if(typeof text === 'string') {
+            textToNumber = parseFloat(text);
+          } else {
+            textToNumber = text;
+          }
+          if(typeof text === 'number' || (typeof text === 'string' &amp;&amp; text.trim().length > 0)) {
+            if (type == 'price') {
+              if (textToNumber &lt; 0) {
+                text = '-' + (prePend || '') + currencyHelper.handleFractionalDigitsAndLocale(Math.abs(textToNumber));
+              } else {
+                text = (prePend || '') + currencyHelper.handleFractionalDigitsAndLocale(textToNumber);
+              }
+            } else if (type == 'percent') {
+              text = (prePend || '') + numberFormatHelper.formatNumber(textToNumber, 2, "decimal");
+            } else if (type == 'number') {
+              text = (prePend || '') + numberFormatHelper.formatNumber(textToNumber, 2, "decimal");
+            } else if (type == 'digit') {
+              text = (prePend || '') + numberFormatHelper.formatNumber(textToNumber, 0, "decimal");
+            }
+          } else {
+            text = (prePend &amp;&amp; prependNull ? prePend : '') + (nullReplace ? nullReplace : '');
+          }
+        } else {
+          text = (prePend || '') + text;
+        }
+      } else {
+        text = (prePend &amp;&amp; prependNull ? prePend : '') + (nullReplace ? nullReplace : '');
+      }
+
+      //update the elements text value
+      ko.bindingHandlers.text.update(element, function() {return text;});
+    }
+  };
+  
+  
+  
+  (function() {
+    //X and Y margins control the dynamic moving of which side
+    //the tooltip appears on based on where it is in the window.
+    var X_MARGIN_SMALL = 200, X_MARGIN_LARGE = 300,
+        Y_MARGIN_SMALL = 100, Y_MARGIN_LARGE = 200,
+        visible, closeVisible, getPlacement, closePopover, handleExternalEvent,
+        isDescendent, toggle, validDates = true;
+
+    /**
+     * Handles user action on external elements (clicks or focuses)
+     * Causes the popover to close.
+     */
+    handleExternalEvent = function(e) {
+      if ($(e.target).closest('.popover').length === 0 &amp;&amp; !isDescendent(e.target, 'datepicker') &amp;&amp; !isDescendent(e.relatedTarget, 'oj-datepicker')) {
+        closeVisible();
+      }
+    };
+
+    /**
+     * Checks if the element is descendent of OJET Calendar.
+     */
+    isDescendent = function(element, ancestorClass) {
+      if (element) {
+        do {
+          if (element.nodeType == 1 &amp;&amp; $(element).is('[class*='+ ancestorClass +']')) {
+            return true;
+          }
+        } while ((element = element.parentElement) &amp;&amp; element !== undefined &amp;&amp; element.nodeType == 1);
+      }
+      return false;
+    };
+
+    /**
+     * Closes the visible popover
+     */
+    closeVisible = function() {
+      if(visible) {
+        visible.data('bs.popover').tip().off('keydown');
+        visible.popover('destroy');
+        visible = null;
+        $(document).off('click', handleExternalEvent);
+        $(document).off('focusin', handleExternalEvent);
+      }
+    };
+
+    /**
+     * Gets the ultimate placement of the tooltip based on the window
+     */
+    getPlacement = function(placement, position) {
+      var top, left, result, $win;
+      $win = $(window);
+      top = position.top - $win.scrollTop();
+      left = position.left - $win.scrollLeft();
+
+      //Top/Bottom replacement based on location on the screen
+      if(top &lt; Y_MARGIN_SMALL || (top &lt; Y_MARGIN_LARGE &amp;&amp; placement === "top")) {
+        result = "bottom";
+      } else if(top > $win.height() - Y_MARGIN_SMALL ||
+                (top > $win.height() - Y_MARGIN_LARGE &amp;&amp; placement === "bottom")) {
+        result = "top";
+      }
+
+      //Left/Right replacement based on location on the screen
+      if(left &lt; X_MARGIN_SMALL || (left &lt; X_MARGIN_LARGE &amp;&amp; placement === "left")) {
+        result = "right";
+      } else if (left > $win.width() - X_MARGIN_SMALL ||
+                 (left > $win.width() - X_MARGIN_LARGE &amp;&amp; placement === "right")) {
+        result = "left";
+      }
+
+      return result || placement;
+    };
+
+      /**
+       * @public
+       * @class Provides a datepicker popover component.
+       * &lt;h2>Parameters:&lt;/h2>
+       * &lt;ul>
+       *   &lt;li>&lt;code>{String} trigger='click'&lt;/code> - The trigger event which will display the popover.&lt;/li>
+       *   &lt;li>&lt;code>{String} class&lt;/code> - The name of the CSS class to be given to the popover content DIV.&lt;/li>
+       *   &lt;li>&lt;code>{String} container='body'&lt;/code> - The element to append the popover content DIV to.&lt;/li>
+       *   &lt;li>&lt;code>{String} placement='right'&lt;/code> - The placement of the popover DIV: top | bottom | left | right | auto.&lt;/li>
+       *   &lt;li>&lt;code>{Observable Date} toDate&lt;/code> - The 'toDate' property.&lt;/li>
+       *   &lt;li>&lt;code>{Observable Date} fromDate&lt;/code> - The 'fromDate' property.&lt;/li>
+       *   &lt;li>&lt;code>{Observable Date} initToDate&lt;/code> - The initial 'toDate' property to be shown.&lt;/li>
+       *   &lt;li>&lt;code>{Observable Date} initFromDate&lt;/code> - The initial 'fromDate' property to be shown.&lt;/li>
+       *   &lt;li>&lt;code>{Observable Date} dataCollectionStartDate&lt;/code> - The property indicating the date after which the selected dates are valid.&lt;/li>
+       *   &lt;li>&lt;code>{Date} yesterday&lt;/code> - Yesterday's date.&lt;/li>
+       *   &lt;li>&lt;code>{function(): boolean} validation&lt;/code> - The validation function. Returns true when 'from' and 'to' dates are valid. 
+       *   When the dates are not invalid, set the appropriate error message text into the errorMessage observable.&lt;/li>
+       *   &lt;li>&lt;code>{Observable String} errorMessage&lt;/code> - The error message observable which will be set to the appropriate value by the validation function.&lt;/li>
+       *   &lt;li>&lt;code>{String} zIndex&lt;/code> - The z-index for the popover.&lt;/li>
+       *   &lt;li>&lt;code>{String} minHeight&lt;/code> - The minimum height of the popover.&lt;/li>
+       *   &lt;li>&lt;code>{String} minWidth&lt;/code> - The minimum width of the popover.&lt;/li>
+       *   &lt;li>&lt;code>{String} name&lt;/code> - The name of the template to be used for the content of the popover.&lt;/li>
+       *   &lt;li>&lt;code>{String} templateUrl&lt;/code> - The url of the content template.&lt;/li>
+       * &lt;/ul>
+       * @example
+       * &amp;lt;button id="calendar" class="btn btn-primary popover-dismiss" data-toggle="popover"
+       *     data-bind="datepopover: {container: '#collapseOne', placement: 'bottom', templateUrl: 'templates/reporting', 
+       *          name: 'datepicker', toDate: $data.ojetToDate, fromDate: $data.ojetFromDate, validation: $data.validateDates,
+       *          errorMessage: $data.errorMessage, zIndex: 550, minHeight: '390px', minWidth: '290px', yesterday: $data.yesterday,
+       *          initToDate: $data.initToDate, initFromDate: $data.initFromDate, dataCollectionStartDate: $data.dataCollectionStartDate}">
+       *   &amp;lt;span class="fa fa-calendar">&lt;/span>
+       * &amp;lt;/button>
+       */
+      ko.bindingHandlers.datepopover = {
+        
+      /**
+        The logic runs once to initialize the binding for this element.
+        @private
+        @param {Object} element The DOM element attached to this binding.
+        @param {function(): object} valueAccessor A function that returns all of the values associated with this binding.
+        @param {function(): object} allBindingsAccessor Object containing information about other bindings on the same HTML element.
+        @param {Object} viewModel The viewModel that is the current context for this binding.
+      */
+        init: function(element, valueAccessor, allBindingsAccessor, viewModel) {
+          var $element, options, model, values = valueAccessor();
+          var tabTrap = ko.bindingHandlers.tabTrap;
+          var initToDate, initFromDate, datesSaved = false;
+
+          //Set the popover options, many can be overwritten by the binding values, but some are static
+          //html is needed for the template to render,
+          //container is body to ensure popover works on all elements
+          //content is a div using the popover class which should set the z-index and height of the popover
+          //this is necessary to ensure the popover positions correctly and that it doesn't pop-in awkwardly
+          options = {
+            html: true,
+            trigger: values.trigger || "click",
+            content: "&lt;div class='"+ values['class'] +"'>&lt;/div>",
+            container: values.container || 'body',
+            placement: values.placement || "right"
+          };
+
+          $element = $(element);
+
+          model = {
+            toDate: ko.observable(ko.utils.unwrapObservable(values.toDate)),
+            fromDate: ko.observable(ko.utils.unwrapObservable(values.fromDate)),
+            toDateLabel: CCi18n.t('ns.reporting:resources.toText') + " " + CCi18n.t('ns.reporting:resources.date') + ":" + CCi18n.t('ns.reporting:resources.descriptionToAccessCalender'),
+            fromDateLabel: CCi18n.t('ns.reporting:resources.fromText') + " " + CCi18n.t('ns.reporting:resources.date') + ":" + CCi18n.t('ns.reporting:resources.descriptionToAccessCalender'),
+            toDateText: CCi18n.t('ns.reporting:resources.toText'),
+            fromDateText: CCi18n.t('ns.reporting:resources.fromText'),
+            customDateRangeText: CCi18n.t('ns.reporting:resources.customDateRangeText'),
+            errorMessage: values.errorMessage,
+            dataCollectionStartDate: values.dataCollectionStartDate,
+            yesterday: values.yesterday,
+            save: function(pFromDate, pToDate) {
+              //Copies the edit value to the base model value
+              //validate values
+              //check if the date is valid
+              var dateFormat = $("#cc-fromDate").ojInputDate("option", "placeholder");
+              if (dateFormat) {
+                dateFormat = dateFormat.toUpperCase();
+              }
+
+              if ($("#cc-fromDate").attr("aria-invalid") === "true" || $("#cc-toDate").attr("aria-invalid") === "true") {
+                values.toDate(undefined);
+                values.fromDate(undefined);
+              } else {
+                if(model.toDate()===null) {
+                  values.toDate(null);
+                } else {
+                  values.toDate(moment(model.toDate()).toDate());
+                }
+                if(model.fromDate()===null) {
+                  values.fromDate(null);
+                } else {
+                  values.fromDate(moment(model.fromDate()).toDate());
+                }
+              }
+              validDates = values.validation();
+              if (validDates) {
+                closeVisible();
+              } else {
+                return false;
+              }
+              if($element.filter(":focusable").length > 0) {
+                $element.focus();
+              } else {
+                $element.find(":focusable").focus();
+              }
+              values.toDate.notifySubscribers(values.toDate(), "valueSubmitted");
+              values.fromDate.notifySubscribers(values.fromDate(), "valueSubmitted");
+              datesSaved = true;
+              return false;
+            },
+
+            close: function() {
+              closeVisible();
+              if($element.filter(":focusable").length > 0) {
+                $element.focus();
+              } else {
+                $element.find(":focusable").focus();
+              }
+              return false;
+            },
+
+            //Focus on the element after the template has loaded
+            focus: function(elements) {
+              if(values.initFromDate() &amp;&amp; values.initToDate()){
+                var dateFormat = $("#cc-fromDate").ojInputDate("option", "placeholder");
+                if (dateFormat) {
+                  dateFormat = dateFormat.toUpperCase();
+                }
+                $("#cc-fromDate").val(ccDate.formatDateAndTime(values.initFromDate(), null, dateFormat, null));
+                $("#cc-toDate").val(ccDate.formatDateAndTime(values.initToDate(), null, dateFormat, null));
+                values.fromDate(values.initFromDate());
+                values.toDate(values.initToDate());
+              }
+              $(elements).find("#cc-toDate").focus();
+              $(elements).find("#cc-fromDate").focus();
+              // constrain tabbing
+              tabTrap.constrain($('.popover.in'));
+            }
+          };
+
+          var $popover = $(values.container);
+
+
+          $popover.on('hidden.bs.popover', function() {
+            if(datesSaved) {
+              initFromDate = null;
+              initToDate = null;
+              values.initFromDate(null);
+              values.initToDate(null);
+            }
+          });
+
+          $element.click(function(e) {
+            var $tip, position, placement;
+            e.preventDefault();
+            options.placement = getPlacement(values.placement, $element.offset());
+
+            $element.popover(options);
+            $tip = $element.data('bs.popover').tip();
+
+            if(!$tip.hasClass('in')) {
+                closeVisible();
+                // if there was no error in the dates saved, fill date popover
+                // with the saved values otherwise with no data
+                if (values.errorMessage() === ''
+                    || values.errorMessage() === undefined) {
+                  if (values.toDate() == null || values.toDate() == undefined) {
+                    model.toDate(null);
+                  } else {
+                    model.toDate(ccDate.formatDateAndTime((values.toDate())
+                        , null,
+                        CCConstants.OJET_INPUT_SHORT_DATE_FORMAT, null));
+                  }
+                  if (values.fromDate() == undefined
+                      || values.fromDate() == null) {
+                    model.fromDate(null);
+                  } else {
+                    model.fromDate(ccDate.formatDateAndTime((values.fromDate())
+                        , null,
+                        CCConstants.OJET_INPUT_SHORT_DATE_FORMAT, null));
+                  }
+                  model.errorMessage = values.errorMessage;
+                } else { // Reset the edit value
+                  model.toDate(null);
+                  model.fromDate(null);
+                  initFromDate = null;
+                  initToDate = null;
+                  values.initToDate(null);
+                  values.initFromDate(null);
+                  values.toDate(null);
+                  values.errorMessage("");
+                  values.fromDate(null);
+                }
+            
+            $tip.css("z-index", values.zIndex);
+            $tip.css("min-height", values.minHeight);
+            $tip.css("min-width", values.minWidth);
+
+            $tip.children('.popover-title').attr('data-bind', "template: {name: 'datepickerHeader', " +
+                        "templateUrl: 'templates/reporting'}");
+            $tip.children('.popover-content').attr('data-bind', "template: {name: '" + values.name +
+                      "', templateUrl: '" + values.templateUrl + "', afterRender: focus}");
+
+            //Handle escape key to hide popover
+            $tip.keydown(function(event) {
+              //27 is escape
+              if(event.which === 27) {
+                closeVisible();
+              }
+            });
+
+            //Delay the event registration to prevent the current click event from firing handleExternalEvent
+            window.setTimeout(function() {
+              $(document).click(handleExternalEvent);
+              $(document).focusin(handleExternalEvent);
+            }, 1);
+
+            $element.popover('show');
+            visible = $element;
+            ko.cleanNode($tip[0]);
+            ko.applyBindingsToDescendants(model, $tip[0]);
+          } else {
+              closeVisible();
+              if($element.filter(":focusable").length > 0) {
+                $element.focus();
+              } else {
+                  $element.find(":focusable").focus();
+              }
+            }
+          });
+        }
+      };
+
+    /**
+     * @ignore
+     * @public
+     * @class Creates a popover on a element, filled with a rendered template.
+     * &lt;a href="http://getbootstrap.com/javascript/#popovers">http://getbootstrap.com/javascript/#popovers&lt;/a>.
+     * 
+     * &lt;h2>Parameters:&lt;/h2>
+     * &lt;ul>
+     *   &lt;li>&lt;code>{String} trigger='click'&lt;/code> - The trigger event which will display the popover.&lt;/li>
+     *   &lt;li>&lt;code>{String} class&lt;/code> - The name of the CSS class to be given to the popover content DIV.&lt;/li>
+     *   &lt;li>&lt;code>{String} container='body'&lt;/code> - The element to append the popover content DIV to.&lt;/li>
+     *   &lt;li>&lt;code>{String} placement='bottom'&lt;/code> - The placement of the popover DIV: top | bottom | left | right | auto.&lt;/li>
+     *   &lt;li>&lt;code>{String} [title]&lt;/code> - The title of the popover.&lt;/li>
+     *   &lt;li>&lt;code>{Object} [model]&lt;/code> - The view model to associate the popover with.&lt;/li>
+     *   &lt;li>&lt;code>{String} zIndex&lt;/code> - The z-index for the popover.&lt;/li>
+     *   &lt;li>&lt;code>{String} minHeight&lt;/code> - The minimum height of the popover.&lt;/li>
+     *   &lt;li>&lt;code>{String} minWidth&lt;/code> - The minimum width of the popover.&lt;/li>
+     *   &lt;li>&lt;code>{String} name&lt;/code> - The name of the template to be used for the content of the popover.&lt;/li>
+     *   &lt;li>&lt;code>{String} templateUrl&lt;/code> - The url of the content template.&lt;/li>
+     * &lt;/ul>
+     * 
+     * @example
+     * &amp;lt;button class="btn btn-primary popover-dismiss" data-toggle="popover"
+     *     data-bind="datepopover: {container: '#containerSection', placement: 'bottom', templateUrl: 'templates/reporting', 
+     *          name: 'datepicker', zIndex: 550, minHeight: '390px', minWidth: '290px'}">
+     * &amp;lt;/button>
+    */
+    ko.bindingHandlers.popover = {
+      /**
+        The logic runs once to initialize the binding for this element.
+        @private
+        @param {Object} element The DOM element attached to this binding.
+        @param {function(): object} valueAccessor A function that returns all of the values associated with this binding.
+        @param {function(): object} allBindingsAccessor Object containing information about other bindings on the same HTML element.
+        @param {Object} viewModel The viewModel that is the current context for this binding.
+      */
+      init: function(element, valueAccessor, allBindingsAccessor, viewModel) {
+        var $element, options, model, values = valueAccessor();
+
+        //Set the popover options, many can be overwritten by the binding values, but some are static
+        //html is needed for the template to render,
+        //container is body to ensure popover works on all elements
+        //content is a div using the popover class which should set the z-index and height of the popover
+        //this is necessary to ensure the popover positions correctly and that it doesn't pop-in awkwardly
+        options = {
+          html: true,
+          trigger: values.trigger || "click",
+          content: "&lt;div class='"+ values['class'] +"'>&lt;/div>",
+          container: values.container || 'body',
+          placement: values.placement || "right"
+        };
+
+        $element = $(element);
+
+        model = {
+          model: values.model || viewModel,
+          save: function() {
+              if(model.property.isValid()) {
+                //Copies the edit value to the base model value
+                if(values.property() != model.property()) {
+                  values.property(model.property());
+                }
+
+                closeVisible();
+                if($element.filter(":focusable").length > 0) {
+                  $element.focus();
+                } else {
+                  $element.find(":focusable").focus();
+                }
+                values.property.notifySubscribers(values.property(), "valueSubmitted");
+                return false;
+              }
+            },
+
+            close: function() {
+                closeVisible();
+                if($element.filter(":focusable").length > 0) {
+                  $element.focus();
+                } else {
+                  $element.find(":focusable").focus();
+                }
+                return false;
+              },
+
+          //Focus on the element after the template has loaded
+          focus: function(elements) {
+            $(elements).find(":focusable").focus();
+
+            // constrain tabbing
+            tabTrap.constrain($('.popover.in'));
+          }
+        };
+
+        $element.click(function(e) {
+          var $tip, position, placement;
+
+          options.placement = getPlacement(values.placement, $element.offset());
+
+          $element.popover(options);
+          $tip = $element.data('bs.popover').tip();
+
+          closeVisible();
+          if(!$tip.hasClass('in')) {
+            $tip.children('.popover-content').attr('data-bind', "template: {name: '" + values.name +
+                   "', templateUrl: '" + values.templateUrl + "', afterRender: focus}");
+            $tip.children('.popover-title').attr('data-bind', "template: {name: 'datepickerHeader', templateUrl: 'templates/reporting'}");
+
+            //Handle escape key to hide popover
+            $tip.keydown(function() {
+              //27 is escape
+              if(event.which === 27) {
+                closeVisible();
+              }
+            });
+
+            //Delay the event registration to prevent the current click event from firing handleExternalEvent
+            window.setTimeout(function() {
+              $(document).click(handleExternalEvent);
+              $(document).focusin(handleExternalEvent);
+            }, 1);
+
+            $element.popover('show');
+            ko.applyBindingsToDescendants(model, $tip[0]);
+          }
+        });
+      }
+    };
+
+  }());
+  
+});
+
+
+
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Index</a></h2><h3>Modules</h3><ul><li><a href="module-ccKoErrorWrapper.html">ccKoErrorWrapper</a></li><li><a href="module-ccKoExtensions.html">ccKoExtensions</a></li></ul><h3>Classes</h3><ul><li><a href="Address.html">Address</a></li><li><a href="CartViewModel.html">CartViewModel</a></li><li><a href="CCStoreConfiguration.html">CCStoreConfiguration</a></li><li><a href="CheckoutScheduledOrder.html">CheckoutScheduledOrder</a></li><li><a href="delegatedAdminContacts.html">delegatedAdminContacts</a></li><li><a href="DynamicProperty.html">DynamicProperty</a></li><li><a href="DynamicPropertyMetaContainer.html">DynamicPropertyMetaContainer</a></li><li><a href="EventDispatcher.html">EventDispatcher</a></li><li><a href="GiftCardViewModel.html">GiftCardViewModel</a></li><li><a href="GiftProductListingViewModel.html">GiftProductListingViewModel</a></li><li><a href="global.html#InfinityViewModel">InfinityViewModel</a></li><li><a href="IntegrationViewModel.html">IntegrationViewModel</a></li><li><a href="ko.bindingHandlers.background.html">background</a></li><li><a href="ko.bindingHandlers.carouselSwipe.html">carouselSwipe</a></li><li><a href="ko.bindingHandlers.ccDateTime.html">ccDateTime</a></li><li><a href="ko.bindingHandlers.ccForm.html">ccForm</a></li><li><a href="ko.bindingHandlers.ccLink.html">ccLink</a></li><li><a href="ko.bindingHandlers.ccValidation.html">ccValidation</a></li><li><a href="ko.bindingHandlers.checkbox.html">checkbox</a></li><li><a href="ko.bindingHandlers.chosen.html">chosen</a></li><li><a href="ko.bindingHandlers.contextResourcesNamespace.html">contextResourcesNamespace</a></li><li><a href="ko.bindingHandlers.currency.html">currency</a></li><li><a href="ko.bindingHandlers.datepicker.html">datepicker</a></li><li><a href="ko.bindingHandlers.datepopover.html">datepopover</a></li><li><a href="ko.bindingHandlers.draggable.html">draggable</a></li><li><a href="ko.bindingHandlers.droppable.html">droppable</a></li><li><a href="ko.bindingHandlers.fade.html">fade</a></li><li><a href="ko.bindingHandlers.hover.html">hover</a></li><li><a href="ko.bindingHandlers.image.html">image</a></li><li><a href="ko.bindingHandlers.imageSource.html">imageSource</a></li><li><a href="ko.bindingHandlers.imageZoom.html">imageZoom</a></li><li><a href="ko.bindingHandlers.localeText.html">localeText</a></li><li><a href="ko.bindingHandlers.makeAccess.html">makeAccess</a></li><li><a href="ko.bindingHandlers.modal.html">modal</a></li><li><a href="ko.bindingHandlers.modalTabbingContraint.html">modalTabbingContraint</a></li><li><a href="ko.bindingHandlers.onRender.html">onRender</a></li><li><a href="ko.bindingHandlers.popeditor.html">popeditor</a></li><li><a href="ko.bindingHandlers.popover.html">popover</a></li><li><a href="ko.bindingHandlers.productImageSource.html">productImageSource</a></li><li><a href="ko.bindingHandlers.productVariantImageSource.html">productVariantImageSource</a></li><li><a href="ko.bindingHandlers.propertyEditor.html">propertyEditor</a></li><li><a href="ko.bindingHandlers.radio.html">radio</a></li><li><a href="ko.bindingHandlers.richTextEditor.html">richTextEditor</a></li><li><a href="ko.bindingHandlers.scrollAffix.html">scrollAffix</a></li><li><a href="ko.bindingHandlers.select2.html">select2</a></li><li><a href="ko.bindingHandlers.select2Tags.html">select2Tags</a></li><li><a href="ko.bindingHandlers.selectable.html">selectable</a></li><li><a href="ko.bindingHandlers.slide.html">slide</a></li><li><a href="ko.bindingHandlers.slider.html">slider</a></li><li><a href="ko.bindingHandlers.spectrum.html">spectrum</a></li><li><a href="ko.bindingHandlers.textCheck.html">textCheck</a></li><li><a href="ko.bindingHandlers.timepicker.html">timepicker</a></li><li><a href="ko.bindingHandlers.triggerMessage.html">triggerMessage</a></li><li><a href="ko.bindingHandlers.validatableTarget.html">validatableTarget</a></li><li><a href="ko.bindingHandlers.validatableValue.html">validatableValue</a></li><li><a href="ko.bindingHandlers.widgetLocaleText.html">widgetLocaleText</a></li><li><a href="koValidation.alphaNumeric.html">alphaNumeric</a></li><li><a href="koValidation.alphaNumericNoSpaces.html">alphaNumericNoSpaces</a></li><li><a href="koValidation.alphaNumericNoSpacesNoDashesWithSeperators.html">alphaNumericNoSpacesNoDashesWithSeperators</a></li><li><a href="koValidation.alphaNumericNoSpacesWithSeperators.html">alphaNumericNoSpacesWithSeperators</a></li><li><a href="koValidation.alphaNumericWithSeperators.html">alphaNumericWithSeperators</a></li><li><a href="koValidation.bool.html">bool</a></li><li><a href="koValidation.creditcard.html">creditcard</a></li><li><a href="koValidation.cvv.html">cvv</a></li><li><a href="koValidation.endmonth.html">endmonth</a></li><li><a href="koValidation.endyear.html">endyear</a></li><li><a href="koValidation.importFileName.html">importFileName</a></li><li><a href="koValidation.laterDate.html">laterDate</a></li><li><a href="koValidation.match.html">match</a></li><li><a href="koValidation.mediaZipFileName.html">mediaZipFileName</a></li><li><a href="koValidation.number.html">number</a></li><li><a href="koValidation.observablePattern.html">observablePattern</a></li><li><a href="koValidation.password.html">password</a></li><li><a href="koValidation.price.html">price</a></li><li><a href="koValidation.propertyIdAlreadyInUse.html">propertyIdAlreadyInUse</a></li><li><a href="koValidation.propertyNameAlreadyInUse.html">propertyNameAlreadyInUse</a></li><li><a href="koValidation.restrictSlashCharacters.html">restrictSlashCharacters</a></li><li><a href="koValidation.startmonth.html">startmonth</a></li><li><a href="koValidation.startyear.html">startyear</a></li><li><a href="koValidation.uniqueTrimmed.html">uniqueTrimmed</a></li><li><a href="koValidation.uniqueTrimmedCaseInsensitive.html">uniqueTrimmedCaseInsensitive</a></li><li><a href="koValidation.url.html">url</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.addTemplate.html">addTemplate</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.agentBar.html">agentBar</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.ccDate.html">ccDate</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.ccNumber.html">ccNumber</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.ccResizeImage.html">ccResizeImage</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.disabled.html">disabled</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.element.html">element</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.embeddedAssistance.html">embeddedAssistance</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.fireChange.html">fireChange</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.inTabFlow.html">inTabFlow</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.noIndexMeta.html">noIndexMeta</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.previewBar.html">previewBar</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.setContextVariable.html">setContextVariable</a></li><li><a href="multiCartViewModel.html">multiCartViewModel</a></li><li><a href="NavStateViewModel.html">NavStateViewModel</a></li><li><a href="OrderDetailsViewModel.html">OrderDetailsViewModel</a></li><li><a href="OrderHistoryViewModel.html">OrderHistoryViewModel</a></li><li><a href="OrdersPendingApprovalViewModel.html">OrdersPendingApprovalViewModel</a></li><li><a href="OrderViewModel.html">OrderViewModel</a></li><li><a href="Organization.html">Organization</a></li><li><a href="ParentOrganisation.html">ParentOrganisation</a></li><li><a href="ProductListingSearchViewModel.html">ProductListingSearchViewModel</a></li><li><a href="ProductListingViewModel.html">ProductListingViewModel</a></li><li><a href="ProductTypes.html">ProductTypes</a></li><li><a href="ProductViewModel.html">ProductViewModel</a></li><li><a href="PromotionUpsellContainer.html">PromotionUpsellContainer</a></li><li><a href="PubSub.topicNames.html">topicNames</a></li><li><a href="PurchaseListListingViewModel.html">PurchaseListListingViewModel</a></li><li><a href="PurchaseListViewModel.html">PurchaseListViewModel</a></li><li><a href="RegistrationRequestSearchViewModel.html">RegistrationRequestSearchViewModel</a></li><li><a href="resetCVV.html">resetCVV</a></li><li><a href="resetGiftCardPin.html">resetGiftCardPin</a></li><li><a href="resetPaymentDetails.html">resetPaymentDetails</a></li><li><a href="ReturnItem.html">ReturnItem</a></li><li><a href="ReturnViewModel.html">ReturnViewModel</a></li><li><a href="scheduledOrderList.html">scheduledOrderList</a></li><li><a href="SearchRestClient.html">SearchRestClient</a></li><li><a href="ServerData.html">ServerData</a></li><li><a href="UserViewModel.html">UserViewModel</a></li><li><a href="WidgetViewModel.html">WidgetViewModel</a></li><li><a href="WishlistContentViewModel.html">WishlistContentViewModel</a></li></ul><h3>Namespaces</h3><ul><li><a href="ko.bindingHandlers.html">bindingHandlers</a></li><li><a href="ko.extenders.html">extenders</a></li><li><a href="koValidation.html">koValidation</a></li></ul><h3>Global</h3><ul><li><a href="global.html#addItemToPurchaseList">addItemToPurchaseList</a></li><li><a href="global.html#callWidgetMethodIfApplicable">callWidgetMethodIfApplicable</a></li><li><a href="global.html#CartViewModel#deleteParticularIncompleteOrdersDeletesanincompleteorderbyorderId">CartViewModel#deleteParticularIncompleteOrdersDeletes an incomplete order by orderId</a></li><li><a href="global.html#CCEETagProcessor">CCEETagProcessor</a></li><li><a href="global.html#doesSiteExist">doesSiteExist</a></li><li><a href="global.html#fetchSkuDetailsListError">fetchSkuDetailsListError</a></li><li><a href="global.html#fetchSkuDetailsListSuccess">fetchSkuDetailsListSuccess</a></li><li><a href="global.html#formatSiteText">formatSiteText</a></li><li><a href="global.html#handleInitiateEditSuccess">handleInitiateEditSuccess</a></li><li><a href="global.html#isModified">isModified</a></li><li><a href="global.html#isValidDeterminewhetherornotthepaymentdetailsobjectisvalidbasedonthevalidityofitscomponentparts.Thiswillnotcauseerrormessagestobedisplayedforanyobservablevaluesthatareunchangedandhaveneverreceivedfocusontherelatedformfield(s).">isValidDetermine whether or not the payment details object is validbased on the validity of its component parts. This will notcause error messages to be displayed for any observable valuesthat are unchanged and have never received focus on the related form field(s).</a></li><li><a href="global.html#justFocused">justFocused</a></li><li><a href="global.html#mapProperties">mapProperties</a></li><li><a href="global.html#MENU_CLOSE_TIMEOUT">MENU_CLOSE_TIMEOUT</a></li><li><a href="global.html#populateData">populateData</a></li><li><a href="global.html#populateProductData">populateProductData</a></li><li><a href="global.html#reset">reset</a></li><li><a href="global.html#resetModified">resetModified</a></li><li><a href="global.html#Resetsstylingforthelazilyloadedimage">Resets styling for the lazily loaded image</a></li><li><a href="global.html#Setsupstylingfortheimagetobelazilyloaded">Sets up styling for the image to be lazily loaded</a></li><li><a href="global.html#ShopperContextViewModel">ShopperContextViewModel</a></li><li><a href="global.html#thelistofpropertiestoignorewhilecopyingdynamicpropertiestoaddressobject">the list of properties to ignore while copying dynamic properties to address object</a></li><li><a href="global.html#validatePaymentDetailsForceallrelevantmemberobservablestoperformtheirvalidationnow&displaytheerrors(ifany)">validatePaymentDetailsForce all relevant member observables to perform theirvalidation now & display the errors (if any)</a></li><li><a href="global.html#WidgetQueue">WidgetQueue</a></li></ul>
+</nav>
+
+<br clear="both">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.0</a> on Wed Feb 26 2020 18:22:23 GMT+0530 (IST)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

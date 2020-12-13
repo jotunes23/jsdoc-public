@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: Dynamo/Client/Store/web/store.war/shared/js/viewModels/scheduledOrderList.js</title>
+    
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+    
+    <h1 class="page-title">Source: Dynamo/Client/Store/web/store.war/shared/js/viewModels/scheduledOrderList.js</h1>
+    
+    
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source"><code>/**
+ * @fileoverview scheduled Order List
+ */
+define(
+  //-------------------------------------------------------------------
+  // PACKAGE NAME
+  //-------------------------------------------------------------------
+  'viewModels/scheduledOrderList',
+
+  //-------------------------------------------------------------------
+  // DEPENDENCIES
+  //-------------------------------------------------------------------
+  ['knockout', 'paginated', 'storageApi', 'pubsub', 'ccRestClient', 'ccConstants',
+   'CCi18n','spinner','pageLayout/rest-adapter', 'ccStoreConfiguration'],
+
+   function(ko, Paginated, storageApi, pubsub, ccRestClient, CCConstants, CCi18n, spinner,storeRestAdapter, CCStoreConfiguration) {
+
+    "use strict";
+
+    //-------------------------------------------------------
+    // View Model
+    //-------------------------------------------------------
+
+    /**
+     * scheduledOrderList,
+     *    used when handling scheduledOrder collections.
+     * 
+     * @public
+     * @class
+     * @name scheduledOrderList
+     * @extends ccPaginated
+     * 
+     * @property {observable&lt;boolean>} display=true Display results?
+     * @property {integer} itemsPerPage=20 The number of items per page.
+     * @property {integer} blockSize=20 The number of items per block.
+     * @property {observable&lt;integer>} itemsPerRow=1 The number of items per row.
+     * @property {CCStoreConfiguration} storeConfiguration An instance of the cc-store-configuration containing store-configuration data.
+     */
+    function scheduledOrderList() {
+      var self = this;
+      // call super constructor
+      Paginated.call(this);
+      self.display = ko.observable(true);
+
+      // additional public variables
+      self.type = "scheduledOrderList";
+      this.sortProperty="createDate:asc";
+      
+      this.itemsPerPage = 20;
+      this.blockSize = 20;
+      /**
+       * This property holds the selected organization
+       */
+      this.organizationFilter = null;
+      
+      /**
+       * Scroll handler method used in phone and tablet modes.
+       *
+       * Method gets next set of orders once bottom of order 
+       * element comes into view.
+       * @private
+       * @param {Object} eventData The event object.
+       */
+      var scrollHandler = function(eventData) {
+        var scrollTop = $(window).scrollTop();
+        var viewportHeight = $(window).height();
+        if ((scrollTop + viewportHeight) >= (($(document).height() / 5) * 4)) {
+          self.incrementPage();
+        }
+      };
+
+      /**
+       * Checks the size of the current viewport and sets the viewport
+       * mode accordingly.
+       * @private
+       * @param {integer} viewportWidth The width of the viewport.
+       */      
+      this.checkResponsiveFeatures = function(viewportWidth) {
+        if (viewportWidth > CCConstants.VIEWPORT_LARGE_DESKTOP_LOWER_WIDTH) {
+          if (self.viewportMode() != CCConstants.LARGE_DESKTOP_VIEW) {
+            self.viewportMode(CCConstants.LARGE_DESKTOP_VIEW);
+          }
+        } else if (viewportWidth > CCConstants.VIEWPORT_TABLET_UPPER_WIDTH  &amp;&amp; viewportWidth &lt;= CCConstants.VIEWPORT_LARGE_DESKTOP_LOWER_WIDTH) {
+          if (self.viewportMode() != CCConstants.DESKTOP_VIEW) {
+            self.viewportMode(CCConstants.DESKTOP_VIEW);
+          }
+        } else if (viewportWidth >= CCConstants.VIEWPORT_TABLET_LOWER_WIDTH &amp;&amp; viewportWidth &lt;= CCConstants.VIEWPORT_TABLET_UPPER_WIDTH) {
+          if (self.viewportMode() != CCConstants.TABLET_VIEW) {
+            self.viewportMode(CCConstants.TABLET_VIEW);
+          }
+        } else if (self.viewportMode() != CCConstants.PHONE_VIEW) {
+          self.viewportMode(CCConstants.PHONE_VIEW);
+        }
+      };      
+
+      /**
+       * Set the number of items per row for responsive viewports
+       * (tablet and phone).
+       * @private
+       */
+      this.handleResponsiveViewports = function() {
+        if (self.viewportMode() == CCConstants.TABLET_VIEW) {
+          self.fetchBlock(0);
+          self.scrollToTop = false;
+          $(window).on('scroll', scrollHandler);
+        }
+        if (self.viewportMode() == CCConstants.PHONE_VIEW) {
+          self.scrollToTop = false;
+          $(window).on('scroll', scrollHandler);
+        }
+      };
+
+      /**
+       * Adds and removes scroll event handler from window, based on what
+       * viewport mode we're in.
+       * @private
+       * @param {integer} value The viewport mode.
+       */
+      var handleViewportChange = function(value) {
+
+        if (value == self._internalViewportMode()) return;
+        self._internalViewportMode(value);
+        if (self.viewportMode() == CCConstants.DESKTOP_VIEW) {
+          self.clearOnLoad = true;
+          self.targetPage = 1;
+          self.fetchBlock(0);
+          self.scrollToTop = true;
+          $(window).off('scroll', scrollHandler);
+        } else if (self.viewportMode() == CCConstants.LARGE_DESKTOP_VIEW) {
+          self.clearOnLoad = true;
+          self.targetPage = 1;
+          self.fetchBlock(0);
+          self.scrollToTop = true;
+          $(window).off('scroll', scrollHandler);
+        }
+        self.handleResponsiveViewports();
+      };
+
+      this.storeConfiguration = CCStoreConfiguration.getInstance();
+      this.viewportMode.subscribe(handleViewportChange);
+      this.checkResponsiveFeatures($(window)[0].innerWidth || $(window).width());
+      this.handleResponsiveViewports();
+      this._internalViewportMode(this.viewportMode());
+
+      $(window).resize(function() {
+        self.checkResponsiveFeatures($(window)[0].innerWidth || $(window).width());
+      });
+
+    }
+
+    var Temp = function(){};
+    Temp.prototype = Paginated.prototype;
+    scheduledOrderList.prototype = new Temp();
+
+    // setup the inheritance chain
+    scheduledOrderList.prototype.constructor = scheduledOrderList;
+    scheduledOrderList.prototype.itemsPerRow = ko.observable(1);
+    scheduledOrderList.prototype._internalViewportMode = ko.observable(4);
+    scheduledOrderList.prototype.viewportMode = ko.observable(4);
+
+    /**
+     * Load orders starting from the specified starting index.
+     * @function scheduledOrderList#fetchBlock
+     * @param {integer} startingIndex the index of the first record to load.
+     */
+    scheduledOrderList.prototype.fetchBlock = function(startingIndex) {
+      var self = this;
+      var url, inputData, q = "";
+
+      if(this.clearOnLoad) {
+        this.clearData();
+      }
+      inputData = {};
+      inputData[CCConstants.OFFSET] = startingIndex;
+      inputData[CCConstants.LIMIT] = this.blockSize * 2;
+      inputData[CCConstants.SORTS] = this.sortProperty;
+      
+      if(this.organizationFilter) {
+        q = "templateOrder.organizationId eq \"" + this.organizationFilter + "\"";
+        inputData["q"] = q;
+      }
+      var contextObj = {};
+      contextObj[CCConstants.ENDPOINT_KEY] = CCConstants.ENDPOINT_LIST_SCHEDULED_ORDERS_BY_PROFILE;
+      var filterKey = this.storeConfiguration.getFilterToUse(contextObj);
+      if (filterKey) {
+        inputData[CCConstants.FILTER_KEY] = filterKey;
+      }
+
+      // In case of SSO login, do not make this endpoint call if the user login is under progress.
+      // After successful login, template would be re-rendered which would trigger this call.
+
+      if(ccRestClient.profileType === CCConstants.PROFILE_TYPE_AGENT) {
+          // Earlier irrespective of shopperId valid or not the endpoint used to be called and on failure scenario
+          // the widgets using this method were redirected to SF profile page
+          // Earlier this profile Id is available through context only, hence the chance of wrong profile Id is negligible.
+          // With DirectUrls as shopper profile Id can be added through URL the chance of giving wrong profile is
+          // increased. Hence we added this condition which will not introduce backward compatibility.
+         self.agentContextmanager = require("agentViewModels/agent-context-manager");
+        if(true != storageApi.getInstance().readFromMemory(CCConstants.CC_IS_SSO_LOGIN_UNDER_PROGRESS)
+          &amp;&amp; self.agentContextmanager.getInstance().getShopperProfileId()){
+            ccRestClient.request(CCConstants.ENDPOINT_LIST_SCHEDULED_ORDERS_BY_PROFILE, inputData, this.successFunc.bind(this), this.errorFunc.bind(this)); 
+          }
+      } else if (true != storageApi.getInstance().readFromMemory(CCConstants.CC_IS_SSO_LOGIN_UNDER_PROGRESS)){
+        ccRestClient.request(CCConstants.ENDPOINT_LIST_SCHEDULED_ORDERS_BY_PROFILE, inputData, this.successFunc.bind(this), this.errorFunc.bind(this));
+      }
+    };
+
+    scheduledOrderList.prototype.refinedFetch = function() {
+      var self = this;
+      self.clearOnLoad = true;
+      self.targetPage = 1;
+      self.fetchBlock(0);
+      self.scrollToTop = true;
+    };
+
+    /**
+     * 'Get scheduledOrderList' success callback function.
+     * Adds the order data to the view model.
+     * @private
+     * @function scheduledOrderList#successFunc
+     * @param {Object} result The scheduledOrderList object.
+     */
+    scheduledOrderList.prototype.successFunc = function(result) {
+      if (result &amp;&amp; result.items) {
+        var resLength=result.items.length;
+        for(var i=0;i&lt;resLength;i++){
+          //manipulating frequency based on schedule object 
+          var scheduleItem=result.items[i].schedule;
+          if (scheduleItem.scheduleType &amp;&amp; scheduleItem.scheduleType == CCConstants.PERIODIC) {
+            result.items[i].frequency=CCConstants.PERIODIC;
+          } else {
+            if(scheduleItem.daysOfWeek.length==7 &amp;&amp; scheduleItem.weeksInMonth.length==5){
+              result.items[i].frequency=CCConstants.DAILY;
+            }else if((scheduleItem.daysOfWeek.length!=0 &amp;&amp; scheduleItem.daysOfWeek.length&lt;7)||(scheduleItem.weeksInMonth.length!=0 &amp;&amp; scheduleItem.weeksInMonth.length&lt;5)){
+              result.items[i].frequency=CCConstants.WEEKLY;
+            }else if(scheduleItem.daysInMonth.length==1 &amp;&amp; scheduleItem.monthsInYear.length!=0){
+              result.items[i].frequency=CCConstants.MONTHLY;
+            }else{
+              result.items[i].frequency=CCConstants.CUSTOM;
+            }
+          }
+          // Checking whether last execution of order was success or not, if not setting executionCheckFlag to false
+          var executionList=result.items[i].executionStatusList;
+          var lastRun=result.items[i].lastScheduledRun;
+          result.items[i].executionCheckFlag = true;
+          if(executionList.length>0){
+            if((executionList[0].executionDate == lastRun) &amp;&amp; (!executionList[0].orderSubmitted)){
+              result.items[i].executionCheckFlag = false;
+            }
+          }
+          // Changing status to "Expired" if currDate > endDate and removing next run date
+          if(result.items[i].endDate){
+            var endDate= new Date(result.items[i].endDate);
+            var currDate= new Date();
+            if(currDate > endDate){
+              result.items[i].state= CCConstants.SCHEDULE_EXPIRED;
+              result.items[i].nextScheduledRun= "";
+            }
+          }
+          if(result.items[i].templateOrder.state == "TEMPLATE" ){
+          if(result.items[i].state == CCConstants.SCHEDULED_ORDER_STATE_ACTIVE){
+            result.items[i].state = CCConstants.SCHEDULED_ACTIVE;
+          }else if(result.items[i].state == CCConstants.SCHEDULED_ORDER_STATE_INACTIVE){
+            result.items[i].state = CCConstants.SCHEDULED_SUSPENDED;
+            result.items[i].nextScheduledRun= "";
+            }
+          }
+          else{
+          if(result.items[i].templateOrder.state == CCConstants.SCHEDULED_ORDER_STATE_PENDING_APPROVAL_TEMPLATE){
+          //result.items[i].templateOrder.state = CCConstants.SCHEDULED_PENDING_APPROVAL;
+            result.items[i].nextScheduledRun= "";
+          }else if(result.items[i].templateOrder.state == CCConstants.SCHEDULED_ORDER_STATE_APPROVED){
+          result.items[i].templateOrder.state = CCConstants.SCHEDULED_APPROVED;
+          }else if(result.items[i].templateOrder.state == CCConstants.SCHEDULED_ORDER_STATE_REJECTED){
+          //result.items[i].templateOrder.state = CCConstants.SCHEDULED_REJECTED;
+          result.items[i].nextScheduledRun= "";
+          }
+          }
+          
+        }
+        
+        this.addData(result.items, result.total &lt; 0 ? 0 : result.total, result.offset);
+      }
+    };
+
+    /**
+     * 'Get scheduledOrderList' error callback function.
+     * Publishes the SCHEDULE_ORDERS_LIST_FAILED event.
+     * @private
+     * @function scheduledOrderList#errorFunc
+     * @param {Object} result The error object.
+     */
+    scheduledOrderList.prototype.errorFunc = function(result) {
+      $.Topic(pubsub.topicNames.SCHEDULE_ORDERS_LIST_FAILED).publishWith(result);
+    };
+    
+    return scheduledOrderList;
+  }
+);
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Index</a></h2><h3>Modules</h3><ul><li><a href="module-ccKoErrorWrapper.html">ccKoErrorWrapper</a></li><li><a href="module-ccKoExtensions.html">ccKoExtensions</a></li></ul><h3>Classes</h3><ul><li><a href="Address.html">Address</a></li><li><a href="CartViewModel.html">CartViewModel</a></li><li><a href="CCStoreConfiguration.html">CCStoreConfiguration</a></li><li><a href="CheckoutScheduledOrder.html">CheckoutScheduledOrder</a></li><li><a href="delegatedAdminContacts.html">delegatedAdminContacts</a></li><li><a href="DynamicProperty.html">DynamicProperty</a></li><li><a href="DynamicPropertyMetaContainer.html">DynamicPropertyMetaContainer</a></li><li><a href="EventDispatcher.html">EventDispatcher</a></li><li><a href="GiftCardViewModel.html">GiftCardViewModel</a></li><li><a href="GiftProductListingViewModel.html">GiftProductListingViewModel</a></li><li><a href="global.html#InfinityViewModel">InfinityViewModel</a></li><li><a href="IntegrationViewModel.html">IntegrationViewModel</a></li><li><a href="ko.bindingHandlers.background.html">background</a></li><li><a href="ko.bindingHandlers.carouselSwipe.html">carouselSwipe</a></li><li><a href="ko.bindingHandlers.ccDateTime.html">ccDateTime</a></li><li><a href="ko.bindingHandlers.ccForm.html">ccForm</a></li><li><a href="ko.bindingHandlers.ccLink.html">ccLink</a></li><li><a href="ko.bindingHandlers.ccValidation.html">ccValidation</a></li><li><a href="ko.bindingHandlers.checkbox.html">checkbox</a></li><li><a href="ko.bindingHandlers.chosen.html">chosen</a></li><li><a href="ko.bindingHandlers.contextResourcesNamespace.html">contextResourcesNamespace</a></li><li><a href="ko.bindingHandlers.currency.html">currency</a></li><li><a href="ko.bindingHandlers.datepicker.html">datepicker</a></li><li><a href="ko.bindingHandlers.datepopover.html">datepopover</a></li><li><a href="ko.bindingHandlers.draggable.html">draggable</a></li><li><a href="ko.bindingHandlers.droppable.html">droppable</a></li><li><a href="ko.bindingHandlers.fade.html">fade</a></li><li><a href="ko.bindingHandlers.hover.html">hover</a></li><li><a href="ko.bindingHandlers.image.html">image</a></li><li><a href="ko.bindingHandlers.imageSource.html">imageSource</a></li><li><a href="ko.bindingHandlers.imageZoom.html">imageZoom</a></li><li><a href="ko.bindingHandlers.localeText.html">localeText</a></li><li><a href="ko.bindingHandlers.makeAccess.html">makeAccess</a></li><li><a href="ko.bindingHandlers.modal.html">modal</a></li><li><a href="ko.bindingHandlers.modalTabbingContraint.html">modalTabbingContraint</a></li><li><a href="ko.bindingHandlers.onRender.html">onRender</a></li><li><a href="ko.bindingHandlers.popeditor.html">popeditor</a></li><li><a href="ko.bindingHandlers.popover.html">popover</a></li><li><a href="ko.bindingHandlers.productImageSource.html">productImageSource</a></li><li><a href="ko.bindingHandlers.productVariantImageSource.html">productVariantImageSource</a></li><li><a href="ko.bindingHandlers.propertyEditor.html">propertyEditor</a></li><li><a href="ko.bindingHandlers.radio.html">radio</a></li><li><a href="ko.bindingHandlers.richTextEditor.html">richTextEditor</a></li><li><a href="ko.bindingHandlers.scrollAffix.html">scrollAffix</a></li><li><a href="ko.bindingHandlers.select2.html">select2</a></li><li><a href="ko.bindingHandlers.select2Tags.html">select2Tags</a></li><li><a href="ko.bindingHandlers.selectable.html">selectable</a></li><li><a href="ko.bindingHandlers.slide.html">slide</a></li><li><a href="ko.bindingHandlers.slider.html">slider</a></li><li><a href="ko.bindingHandlers.spectrum.html">spectrum</a></li><li><a href="ko.bindingHandlers.textCheck.html">textCheck</a></li><li><a href="ko.bindingHandlers.timepicker.html">timepicker</a></li><li><a href="ko.bindingHandlers.triggerMessage.html">triggerMessage</a></li><li><a href="ko.bindingHandlers.validatableTarget.html">validatableTarget</a></li><li><a href="ko.bindingHandlers.validatableValue.html">validatableValue</a></li><li><a href="ko.bindingHandlers.widgetLocaleText.html">widgetLocaleText</a></li><li><a href="koValidation.alphaNumeric.html">alphaNumeric</a></li><li><a href="koValidation.alphaNumericNoSpaces.html">alphaNumericNoSpaces</a></li><li><a href="koValidation.alphaNumericNoSpacesNoDashesWithSeperators.html">alphaNumericNoSpacesNoDashesWithSeperators</a></li><li><a href="koValidation.alphaNumericNoSpacesWithSeperators.html">alphaNumericNoSpacesWithSeperators</a></li><li><a href="koValidation.alphaNumericWithSeperators.html">alphaNumericWithSeperators</a></li><li><a href="koValidation.bool.html">bool</a></li><li><a href="koValidation.creditcard.html">creditcard</a></li><li><a href="koValidation.cvv.html">cvv</a></li><li><a href="koValidation.endmonth.html">endmonth</a></li><li><a href="koValidation.endyear.html">endyear</a></li><li><a href="koValidation.importFileName.html">importFileName</a></li><li><a href="koValidation.laterDate.html">laterDate</a></li><li><a href="koValidation.match.html">match</a></li><li><a href="koValidation.mediaZipFileName.html">mediaZipFileName</a></li><li><a href="koValidation.number.html">number</a></li><li><a href="koValidation.observablePattern.html">observablePattern</a></li><li><a href="koValidation.password.html">password</a></li><li><a href="koValidation.price.html">price</a></li><li><a href="koValidation.propertyIdAlreadyInUse.html">propertyIdAlreadyInUse</a></li><li><a href="koValidation.propertyNameAlreadyInUse.html">propertyNameAlreadyInUse</a></li><li><a href="koValidation.restrictSlashCharacters.html">restrictSlashCharacters</a></li><li><a href="koValidation.startmonth.html">startmonth</a></li><li><a href="koValidation.startyear.html">startyear</a></li><li><a href="koValidation.uniqueTrimmed.html">uniqueTrimmed</a></li><li><a href="koValidation.uniqueTrimmedCaseInsensitive.html">uniqueTrimmedCaseInsensitive</a></li><li><a href="koValidation.url.html">url</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.addTemplate.html">addTemplate</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.agentBar.html">agentBar</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.ccDate.html">ccDate</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.ccNumber.html">ccNumber</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.ccResizeImage.html">ccResizeImage</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.disabled.html">disabled</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.element.html">element</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.embeddedAssistance.html">embeddedAssistance</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.fireChange.html">fireChange</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.inTabFlow.html">inTabFlow</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.noIndexMeta.html">noIndexMeta</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.previewBar.html">previewBar</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.setContextVariable.html">setContextVariable</a></li><li><a href="multiCartViewModel.html">multiCartViewModel</a></li><li><a href="NavStateViewModel.html">NavStateViewModel</a></li><li><a href="OrderDetailsViewModel.html">OrderDetailsViewModel</a></li><li><a href="OrderHistoryViewModel.html">OrderHistoryViewModel</a></li><li><a href="OrdersPendingApprovalViewModel.html">OrdersPendingApprovalViewModel</a></li><li><a href="OrderViewModel.html">OrderViewModel</a></li><li><a href="Organization.html">Organization</a></li><li><a href="ParentOrganisation.html">ParentOrganisation</a></li><li><a href="ProductListingSearchViewModel.html">ProductListingSearchViewModel</a></li><li><a href="ProductListingViewModel.html">ProductListingViewModel</a></li><li><a href="ProductTypes.html">ProductTypes</a></li><li><a href="ProductViewModel.html">ProductViewModel</a></li><li><a href="PromotionUpsellContainer.html">PromotionUpsellContainer</a></li><li><a href="PubSub.topicNames.html">topicNames</a></li><li><a href="PurchaseListListingViewModel.html">PurchaseListListingViewModel</a></li><li><a href="PurchaseListViewModel.html">PurchaseListViewModel</a></li><li><a href="RegistrationRequestSearchViewModel.html">RegistrationRequestSearchViewModel</a></li><li><a href="resetCVV.html">resetCVV</a></li><li><a href="resetGiftCardPin.html">resetGiftCardPin</a></li><li><a href="resetPaymentDetails.html">resetPaymentDetails</a></li><li><a href="ReturnItem.html">ReturnItem</a></li><li><a href="ReturnViewModel.html">ReturnViewModel</a></li><li><a href="scheduledOrderList.html">scheduledOrderList</a></li><li><a href="SearchRestClient.html">SearchRestClient</a></li><li><a href="ServerData.html">ServerData</a></li><li><a href="UserViewModel.html">UserViewModel</a></li><li><a href="WidgetViewModel.html">WidgetViewModel</a></li><li><a href="WishlistContentViewModel.html">WishlistContentViewModel</a></li></ul><h3>Namespaces</h3><ul><li><a href="ko.bindingHandlers.html">bindingHandlers</a></li><li><a href="ko.extenders.html">extenders</a></li><li><a href="koValidation.html">koValidation</a></li></ul><h3>Global</h3><ul><li><a href="global.html#addItemToPurchaseList">addItemToPurchaseList</a></li><li><a href="global.html#callWidgetMethodIfApplicable">callWidgetMethodIfApplicable</a></li><li><a href="global.html#CartViewModel#deleteParticularIncompleteOrdersDeletesanincompleteorderbyorderId">CartViewModel#deleteParticularIncompleteOrdersDeletes an incomplete order by orderId</a></li><li><a href="global.html#CCEETagProcessor">CCEETagProcessor</a></li><li><a href="global.html#doesSiteExist">doesSiteExist</a></li><li><a href="global.html#fetchSkuDetailsListError">fetchSkuDetailsListError</a></li><li><a href="global.html#fetchSkuDetailsListSuccess">fetchSkuDetailsListSuccess</a></li><li><a href="global.html#formatSiteText">formatSiteText</a></li><li><a href="global.html#handleInitiateEditSuccess">handleInitiateEditSuccess</a></li><li><a href="global.html#isModified">isModified</a></li><li><a href="global.html#isValidDeterminewhetherornotthepaymentdetailsobjectisvalidbasedonthevalidityofitscomponentparts.Thiswillnotcauseerrormessagestobedisplayedforanyobservablevaluesthatareunchangedandhaveneverreceivedfocusontherelatedformfield(s).">isValidDetermine whether or not the payment details object is validbased on the validity of its component parts. This will notcause error messages to be displayed for any observable valuesthat are unchanged and have never received focus on the related form field(s).</a></li><li><a href="global.html#justFocused">justFocused</a></li><li><a href="global.html#mapProperties">mapProperties</a></li><li><a href="global.html#MENU_CLOSE_TIMEOUT">MENU_CLOSE_TIMEOUT</a></li><li><a href="global.html#populateData">populateData</a></li><li><a href="global.html#populateProductData">populateProductData</a></li><li><a href="global.html#reset">reset</a></li><li><a href="global.html#resetModified">resetModified</a></li><li><a href="global.html#Resetsstylingforthelazilyloadedimage">Resets styling for the lazily loaded image</a></li><li><a href="global.html#Setsupstylingfortheimagetobelazilyloaded">Sets up styling for the image to be lazily loaded</a></li><li><a href="global.html#ShopperContextViewModel">ShopperContextViewModel</a></li><li><a href="global.html#thelistofpropertiestoignorewhilecopyingdynamicpropertiestoaddressobject">the list of properties to ignore while copying dynamic properties to address object</a></li><li><a href="global.html#validatePaymentDetailsForceallrelevantmemberobservablestoperformtheirvalidationnow&displaytheerrors(ifany)">validatePaymentDetailsForce all relevant member observables to perform theirvalidation now & display the errors (if any)</a></li><li><a href="global.html#WidgetQueue">WidgetQueue</a></li></ul>
+</nav>
+
+<br clear="both">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.0</a> on Wed Feb 26 2020 18:22:23 GMT+0530 (IST)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

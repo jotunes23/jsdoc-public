@@ -1,0 +1,5458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Class: UserViewModel</title>
+    
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+    
+    <h1 class="page-title">Class: UserViewModel</h1>
+    
+    
+
+
+
+<section>
+    
+<header>
+    <h2>
+    UserViewModel
+    </h2>
+    
+        <div class="class-description">Represents a user.</div>
+    
+</header>  
+
+<article>
+    <div class="container-overview">
+    
+    
+    
+        
+<dt>
+    <h4 class="name" id="UserViewModel"><span class="type-signature"></span>new UserViewModel<span class="signature">(pAdapter, pUserData)</span><span class="type-signature"></span></h4>
+    
+    
+</dt>
+<dd>
+    
+    
+    <div class="description">
+        Creates a user view model.<p>The User View Model is a singleton class that provides the context for logged inuser data, e.g. Profile data, Preferences, Shipping information.
+    </div>
+    
+
+    
+    
+    
+    
+    
+        <h5>Parameters:</h5>
+        
+
+<table class="params">
+    <thead>
+	<tr>
+		
+		<th>Name</th>
+		
+		
+		<th>Type</th>
+		
+		
+		
+		
+		
+		<th class="last">Description</th>
+	</tr>
+	</thead>
+	
+	<tbody>
+	
+	
+        <tr>
+            
+                <td class="name"><code>pAdapter</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type"><a href="RestAdapter.html">RestAdapter</a></span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">REST adapter.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>pUserData</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">Object</span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">Additional user data.</td>
+        </tr>
+	
+	
+	</tbody>
+</table>
+    
+    
+    
+<dl class="details">
+    
+        
+        <h5 class="subsection-title">Properties:</h5>
+        
+        <dl>
+
+<table class="props">
+    <thead>
+	<tr>
+		
+		<th>Name</th>
+		
+		
+		<th>Type</th>
+		
+		
+		
+		
+		
+		<th class="last">Description</th>
+	</tr>
+	</thead>
+	
+	<tbody>
+	
+	
+        <tr>
+            
+                <td class="name"><code>firstName</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">observable.&lt;string></span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">First part of name</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>lastName</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">observable.&lt;string></span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">Last part of name</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>loggedInUserName</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">observable.&lt;string></span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">Logged in username.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>emailAddress</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">observable.&lt;string></span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">Primary communication email address.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>emailAddressForForgottenPwd</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">observable.&lt;string></span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">Email address to use for password retrieval.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>emailMarketingMails</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">observable.&lt;string></span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">Email address to use for marketing messages.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>emailMarketingModified</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">observable.&lt;boolean></span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">Flag showing if the marketing email field is modified.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>GDPRProfileP13nConsentGranted</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">observable.&lt;boolean></span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">Flag showing if the GDPRProfileP13nConsent is granted.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>GDPRProfileP13nConsentModified</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">observable.&lt;boolean></span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">Flag showing if the GDPRProfileP13nConsent is modified.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>previousVisitDate</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">observable.&lt;timestamp></span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">Shopper's previous visit date.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>password</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">observable.&lt;string></span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">Password.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>oldPassword</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">observable.&lt;string></span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">Existing password field on change password form.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>newPassword</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">observable.&lt;string></span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">New password field on change password form.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>confirmPassword</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">observable.&lt;string></span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">Confirm password field on change password form.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>token</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">The token to be used to reset the password.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>shippingAddressBook</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">observableArray.&lt;<a href="Address.html">Address</a>></span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">Shipping addresses associated with user.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>defaultShippingAddress</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">observable.&lt;<a href="Address.html">Address</a>></span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">helper for default address selection.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>editShippingAddress</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">observable.&lt;<a href="Address.html">Address</a>></span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">Address object shown on editable address form.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>deleteShippingAddress</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">observable.&lt;boolean></span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">Flag set to true if an address is being deleted.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>locale</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">observable.&lt;string></span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">User locale.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>loggedinAtCheckout</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">observable.&lt;boolean></span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">Flag to determine if user is logged in on the checkout page.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>loggedoutAtCheckout</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">observable.&lt;boolean></span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">Flag to determine if user if logged out on the checkout page.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>persistedOrder</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">observable.&lt;Object></span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">Saved recent, or in progress order.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>orderId</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">observable.&lt;string></span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">ID of recent, or in progress order.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>countOfSubmittedOrders</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">observable.&lt;number></span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">Track number of orders created by user.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>ignoreEmailValidation</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">observable.&lt;boolean></span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">Flag to temporarily ignore validation on email address field.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>ignorePasswordValidation</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">observable.&lt;boolean></span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">Flag to temporarily ignore validation on password field.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>isUserProfileEdited</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">observable.&lt;boolean></span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">Whether the User profile has unsaved changes.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>delaySuccessNotification</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">observable.&lt;boolean></span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">Whether to delay the notification popup.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>isSearchInitiatedWithUnsavedChanges</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">observable.&lt;boolean></span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">Whether there are unsaved changes when a search is initiated.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>isUserSessionExpired</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">observable.&lt;boolean></span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">True if the user's session has expired.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>pageToRedirect</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">observable.&lt;string></span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">Hash code for page redirection</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>isSessionExpiredDuringSave</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">observable.&lt;boolean></span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">True if the user's session expires when a save operation is in progress.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>isUserLoggedOut</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">observable.&lt;boolean></span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">True if user has logged out.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>isPageRedirected</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">observable.&lt;boolean></span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">True if page was redirected.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>isResourcesLoaded</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">observable.&lt;boolean></span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">True when resources are loaded.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>errorMessageKey</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">observable.&lt;string></span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">Resource key to look up current error notification message.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>successMessageKey</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">observable.&lt;string></span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">Resource key to look up current success notification message.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>passwordPolicies</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">observable.&lt;Array.&lt;Object>></span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">List of store specific password rules enabled for user accounts.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>isChangePassword</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">observable.&lt;boolean></span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">Flag to determine if we need to display the password change fields.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>showCreateNewPasswordMsg</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">observable.&lt;boolean></span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">Flag to determine whether to display the new password prompt.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>createNewPasswordError</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">observable.&lt;string></span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">Message to display if password creation failed.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>isPasswordExpired</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">observable.&lt;boolean></span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">True if password has expired.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>hasFieldLevelError</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">observable.&lt;boolean></span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">True if any of the fields on the profile has an error.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>ignoreConfirmPasswordValidation</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">observable.&lt;boolean></span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">Flag to temporarily ignore validation on the confirm password field.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>forgotPasswordMsg</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">observable.&lt;string></span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">Localisable message for 'forgotten password' link.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>myWishLists</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">observable.&lt;Array.&lt;Object>></span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">List of owned wish lists</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>joinedWishLists</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">observable.&lt;Array.&lt;Object>></span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">List of joined wish lists</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>approvalRequired</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">observable.&lt;boolean></span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">Profile level flag , specifies if Order approval is enabled for profile or not</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>orderPurchaseLimit</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">observable.&lt;string></span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">Profile level purchase Limit</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>storeConfiguration</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type"><a href="CCStoreConfiguration.html">CCStoreConfiguration</a></span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">An instance of the cc-store-configuration containing store-configuration data.</td>
+        </tr>
+	
+	
+	</tbody>
+</table></dl>
+        
+    
+        
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html">Dynamo/Client/Store/web/store.war/shared/js/pageLayout/user.js</a>, <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html#line31">line 31</a>
+    </li></ul></dd>
+    
+    
+    
+    
+    
+    
+    
+</dl>
+
+    
+    
+
+    
+
+    
+    
+    
+    
+    
+    
+    
+</dd>
+
+    
+    </div>
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+        <h3 class="subsection-title">Methods</h3>
+        
+        <dl>
+            
+<dt>
+    <h4 class="name" id=".getInstance"><span class="type-signature">&lt;static> </span>getInstance<span class="signature">(pAdapter, pUserData, pParams)</span><span class="type-signature"> &rarr; {<a href="UserViewModel.html">UserViewModel</a>}</span></h4>
+    
+    
+</dt>
+<dd>
+    
+    
+    <div class="description">
+        Return the singleton global instance of UserViewModel. Creates it if it doesn't already exist.
+    </div>
+    
+
+    
+    
+    
+    
+    
+        <h5>Parameters:</h5>
+        
+
+<table class="params">
+    <thead>
+	<tr>
+		
+		<th>Name</th>
+		
+		
+		<th>Type</th>
+		
+		
+		
+		
+		
+		<th class="last">Description</th>
+	</tr>
+	</thead>
+	
+	<tbody>
+	
+	
+        <tr>
+            
+                <td class="name"><code>pAdapter</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type"><a href="RestAdapter.html">RestAdapter</a></span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">REST Adapter.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>pUserData</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">Object</span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">Aditional user data.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>pParams</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">Object</span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">Some additional params (server data).</td>
+        </tr>
+	
+	
+	</tbody>
+</table>
+    
+    
+    
+<dl class="details">
+    
+        
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html">Dynamo/Client/Store/web/store.war/shared/js/pageLayout/user.js</a>, <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html#line2560">line 2560</a>
+    </li></ul></dd>
+    
+    
+    
+    
+    
+    
+    
+</dl>
+
+    
+    
+
+    
+
+    
+    
+    
+    
+    
+    <h5>Returns:</h5>
+    
+            
+<div class="param-desc">
+    The user view model.
+</div>
+
+
+
+<dl>
+	<dt>
+		Type
+	</dt>
+	<dd>
+		
+<span class="param-type"><a href="UserViewModel.html">UserViewModel</a></span>
+
+
+	</dd>
+</dl>
+
+        
+    
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="emailAddressFocused"><span class="type-signature"></span>emailAddressFocused<span class="signature">()</span><span class="type-signature"></span></h4>
+    
+    
+</dt>
+<dd>
+    
+    
+    <div class="description">
+        Callback invoked when email address field receives focus. Disables email validation.
+    </div>
+    
+
+    
+    
+    
+    
+    
+    
+    
+<dl class="details">
+    
+        
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html">Dynamo/Client/Store/web/store.war/shared/js/pageLayout/user.js</a>, <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html#line282">line 282</a>
+    </li></ul></dd>
+    
+    
+    
+    
+    
+    
+    
+</dl>
+
+    
+    
+
+    
+
+    
+    
+    
+    
+    
+    
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="emailAddressLostFocus"><span class="type-signature"></span>emailAddressLostFocus<span class="signature">()</span><span class="type-signature"></span></h4>
+    
+    
+</dt>
+<dd>
+    
+    
+    <div class="description">
+        Callback invoked when email address field loses focus. Re-enable email validation.
+    </div>
+    
+
+    
+    
+    
+    
+    
+    
+    
+<dl class="details">
+    
+        
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html">Dynamo/Client/Store/web/store.war/shared/js/pageLayout/user.js</a>, <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html#line293">line 293</a>
+    </li></ul></dd>
+    
+    
+    
+    
+    
+    
+    
+</dl>
+
+    
+    
+
+    
+
+    
+    
+    
+    
+    
+    
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="getCurrentUser"><span class="type-signature"></span>getCurrentUser<span class="signature">(isAutoLogin, isLogin, pSuccessCallback, pFailureCallback)</span><span class="type-signature"></span></h4>
+    
+    
+</dt>
+<dd>
+    
+    
+    <div class="description">
+        Get current user profileGets the logged-in user's data via a REST call.
+    </div>
+    
+
+    
+    
+    
+    
+    
+        <h5>Parameters:</h5>
+        
+
+<table class="params">
+    <thead>
+	<tr>
+		
+		<th>Name</th>
+		
+		
+		<th>Type</th>
+		
+		
+		
+		
+		
+		<th class="last">Description</th>
+	</tr>
+	</thead>
+	
+	<tbody>
+	
+	
+        <tr>
+            
+                <td class="name"><code>isAutoLogin</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">boolean</span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">Flag to suppress some actions for auto-login.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>isLogin</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">boolean</span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">Flag to perform few actions after login.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>pSuccessCallback</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">function</span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">success callback passed from calling method</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>pFailureCallback</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">function</span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">failure callback passed from calling method</td>
+        </tr>
+	
+	
+	</tbody>
+</table>
+    
+    
+    
+<dl class="details">
+    
+        
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html">Dynamo/Client/Store/web/store.war/shared/js/pageLayout/user.js</a>, <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html#line1612">line 1612</a>
+    </li></ul></dd>
+    
+    
+    
+    
+    
+    
+    
+</dl>
+
+    
+    
+
+    
+
+    
+    
+    
+    
+    
+    
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="handleAccountDetailsUpdate"><span class="type-signature"></span>handleAccountDetailsUpdate<span class="signature">()</span><span class="type-signature"></span></h4>
+    
+    
+</dt>
+<dd>
+    
+    
+    <div class="description">
+        Update the user account details eg. first name , last name etc .
+    </div>
+    
+
+    
+    
+    
+    
+    
+    
+    
+<dl class="details">
+    
+        
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html">Dynamo/Client/Store/web/store.war/shared/js/pageLayout/user.js</a>, <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html#line2318">line 2318</a>
+    </li></ul></dd>
+    
+    
+    
+    
+    
+    
+    
+</dl>
+
+    
+    
+
+    
+
+    
+    
+    
+    
+    
+    
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="handleDynamicPropertiesUpdate"><span class="type-signature"></span>handleDynamicPropertiesUpdate<span class="signature">()</span><span class="type-signature"></span></h4>
+    
+    
+</dt>
+<dd>
+    
+    
+    <div class="description">
+        Update the dynamic properties
+    </div>
+    
+
+    
+    
+    
+    
+    
+    
+    
+<dl class="details">
+    
+        
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html">Dynamo/Client/Store/web/store.war/shared/js/pageLayout/user.js</a>, <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html#line2334">line 2334</a>
+    </li></ul></dd>
+    
+    
+    
+    
+    
+    
+    
+</dl>
+
+    
+    
+
+    
+
+    
+    
+    
+    
+    
+    
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="handleShippingAddressUpdate"><span class="type-signature"></span>handleShippingAddressUpdate<span class="signature">()</span><span class="type-signature"></span></h4>
+    
+    
+</dt>
+<dd>
+    
+    
+    <div class="description">
+        Update the shipping address update
+    </div>
+    
+
+    
+    
+    
+    
+    
+    
+    
+<dl class="details">
+    
+        
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html">Dynamo/Client/Store/web/store.war/shared/js/pageLayout/user.js</a>, <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html#line2360">line 2360</a>
+    </li></ul></dd>
+    
+    
+    
+    
+    
+    
+    
+</dl>
+
+    
+    
+
+    
+
+    
+    
+    
+    
+    
+    
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="handleUpdatePassword"><span class="type-signature"></span>handleUpdatePassword<span class="signature">()</span><span class="type-signature"></span></h4>
+    
+    
+</dt>
+<dd>
+    
+    
+    <div class="description">
+        Update the user password update
+    </div>
+    
+
+    
+    
+    
+    
+    
+    
+    
+<dl class="details">
+    
+        
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html">Dynamo/Client/Store/web/store.war/shared/js/pageLayout/user.js</a>, <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html#line2348">line 2348</a>
+    </li></ul></dd>
+    
+    
+    
+    
+    
+    
+    
+</dl>
+
+    
+    
+
+    
+
+    
+    
+    
+    
+    
+    
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="invokeUpdateProfile"><span class="type-signature"></span>invokeUpdateProfile<span class="signature">()</span><span class="type-signature"></span></h4>
+    
+    
+</dt>
+<dd>
+    
+    
+    <div class="description">
+        Update call for any profile data update
+    </div>
+    
+
+    
+    
+    
+    
+    
+    
+    
+<dl class="details">
+    
+        
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html">Dynamo/Client/Store/web/store.war/shared/js/pageLayout/user.js</a>, <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html#line2370">line 2370</a>
+    </li></ul></dd>
+    
+    
+    
+    
+    
+    
+    
+</dl>
+
+    
+    
+
+    
+
+    
+    
+    
+    
+    
+    
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="isAddressSaved"><span class="type-signature"></span>isAddressSaved<span class="signature">(addr)</span><span class="type-signature"> &rarr; {boolean}</span></h4>
+    
+    
+</dt>
+<dd>
+    
+    
+    <div class="description">
+        Checks if the supplied address already exists in the profile address book.
+    </div>
+    
+
+    
+    
+    
+    
+    
+        <h5>Parameters:</h5>
+        
+
+<table class="params">
+    <thead>
+	<tr>
+		
+		<th>Name</th>
+		
+		
+		<th>Type</th>
+		
+		
+		
+		
+		
+		<th class="last">Description</th>
+	</tr>
+	</thead>
+	
+	<tbody>
+	
+	
+        <tr>
+            
+                <td class="name"><code>addr</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type"><a href="Address.html">Address</a></span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">An address object.</td>
+        </tr>
+	
+	
+	</tbody>
+</table>
+    
+    
+    
+<dl class="details">
+    
+        
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html">Dynamo/Client/Store/web/store.war/shared/js/pageLayout/user.js</a>, <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html#line681">line 681</a>
+    </li></ul></dd>
+    
+    
+    
+    
+    
+    
+    
+</dl>
+
+    
+    
+
+    
+
+    
+    
+    
+    
+    
+    <h5>Returns:</h5>
+    
+            
+<div class="param-desc">
+    true if the address is already present, otherwise false.
+</div>
+
+
+
+<dl>
+	<dt>
+		Type
+	</dt>
+	<dd>
+		
+<span class="param-type">boolean</span>
+
+
+	</dd>
+</dl>
+
+        
+    
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="isDynamicPropertiesModified"><span class="type-signature"></span>isDynamicPropertiesModified<span class="signature">()</span><span class="type-signature"></span></h4>
+    
+    
+</dt>
+<dd>
+    
+    
+    <div class="description">
+        Check if the dynamic properties array contains any dynamic property which have been modified.
+    </div>
+    
+
+    
+    
+    
+    
+    
+    
+    
+<dl class="details">
+    
+        
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html">Dynamo/Client/Store/web/store.war/shared/js/pageLayout/user.js</a>, <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html#line759">line 759</a>
+    </li></ul></dd>
+    
+    
+    
+    
+    
+    
+    
+</dl>
+
+    
+    
+
+    
+
+    
+    
+    
+    
+    
+    <h5>Returns:</h5>
+    
+            
+<div class="param-desc">
+    true if any dynamic property is modified, otherwise false.
+</div>
+
+
+
+        
+    
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="isLoginValid"><span class="type-signature"></span>isLoginValid<span class="signature">()</span><span class="type-signature"> &rarr; {boolean}</span></h4>
+    
+    
+</dt>
+<dd>
+    
+    
+    <div class="description">
+        Handle the validation of login.
+    </div>
+    
+
+    
+    
+    
+    
+    
+    
+    
+<dl class="details">
+    
+        
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html">Dynamo/Client/Store/web/store.war/shared/js/pageLayout/user.js</a>, <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html#line528">line 528</a>
+    </li></ul></dd>
+    
+    
+    
+    
+    
+    
+    
+</dl>
+
+    
+    
+
+    
+
+    
+    
+    
+    
+    
+    <h5>Returns:</h5>
+    
+            
+<div class="param-desc">
+    true if login is valid, otherwise false.
+</div>
+
+
+
+<dl>
+	<dt>
+		Type
+	</dt>
+	<dd>
+		
+<span class="param-type">boolean</span>
+
+
+	</dd>
+</dl>
+
+        
+    
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="isPasswordModified"><span class="type-signature"></span>isPasswordModified<span class="signature">()</span><span class="type-signature"> &rarr; {boolean}</span></h4>
+    
+    
+</dt>
+<dd>
+    
+    
+    <div class="description">
+        Check whether any of the password fields have beenmodified: oldPassword, newPassword, confirmPassword.
+    </div>
+    
+
+    
+    
+    
+    
+    
+    
+    
+<dl class="details">
+    
+        
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html">Dynamo/Client/Store/web/store.war/shared/js/pageLayout/user.js</a>, <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html#line621">line 621</a>
+    </li></ul></dd>
+    
+    
+    
+    
+    
+    
+    
+</dl>
+
+    
+    
+
+    
+
+    
+    
+    
+    
+    
+    <h5>Returns:</h5>
+    
+            
+<div class="param-desc">
+    true if any password fields are modified, otherwise false.
+</div>
+
+
+
+<dl>
+	<dt>
+		Type
+	</dt>
+	<dd>
+		
+<span class="param-type">boolean</span>
+
+
+	</dd>
+</dl>
+
+        
+    
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="isPasswordValid"><span class="type-signature"></span>isPasswordValid<span class="signature">(isUsingToken)</span><span class="type-signature"> &rarr; {boolean}</span></h4>
+    
+    
+</dt>
+<dd>
+    
+    
+    <div class="description">
+        Check whether all password fields are valid.
+    </div>
+    
+
+    
+    
+    
+    
+    
+        <h5>Parameters:</h5>
+        
+
+<table class="params">
+    <thead>
+	<tr>
+		
+		<th>Name</th>
+		
+		
+		<th>Type</th>
+		
+		
+		
+		
+		
+		<th class="last">Description</th>
+	</tr>
+	</thead>
+	
+	<tbody>
+	
+	
+        <tr>
+            
+                <td class="name"><code>isUsingToken</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">boolean</span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">needs to be set to true in order to not validate old password.</td>
+        </tr>
+	
+	
+	</tbody>
+</table>
+    
+    
+    
+<dl class="details">
+    
+        
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html">Dynamo/Client/Store/web/store.war/shared/js/pageLayout/user.js</a>, <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html#line636">line 636</a>
+    </li></ul></dd>
+    
+    
+    
+    
+    
+    
+    
+</dl>
+
+    
+    
+
+    
+
+    
+    
+    
+    
+    
+    <h5>Returns:</h5>
+    
+            
+<div class="param-desc">
+    true if all password fields are valid, otherwise false.
+</div>
+
+
+
+<dl>
+	<dt>
+		Type
+	</dt>
+	<dd>
+		
+<span class="param-type">boolean</span>
+
+
+	</dd>
+</dl>
+
+        
+    
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="isProfileModified"><span class="type-signature"></span>isProfileModified<span class="signature">()</span><span class="type-signature"> &rarr; {boolean}</span></h4>
+    
+    
+</dt>
+<dd>
+    
+    
+    <div class="description">
+        Check whether profile is modified.
+    </div>
+    
+
+    
+    
+    
+    
+    
+    
+    
+<dl class="details">
+    
+        
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html">Dynamo/Client/Store/web/store.war/shared/js/pageLayout/user.js</a>, <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html#line605">line 605</a>
+    </li></ul></dd>
+    
+    
+    
+    
+    
+    
+    
+</dl>
+
+    
+    
+
+    
+
+    
+    
+    
+    
+    
+    <h5>Returns:</h5>
+    
+            
+<div class="param-desc">
+    true if profile has been modified, otherwise false.
+</div>
+
+
+
+<dl>
+	<dt>
+		Type
+	</dt>
+	<dd>
+		
+<span class="param-type">boolean</span>
+
+
+	</dd>
+</dl>
+
+        
+    
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="isProfileValid"><span class="type-signature"></span>isProfileValid<span class="signature">()</span><span class="type-signature"> &rarr; {boolean}</span></h4>
+    
+    
+</dt>
+<dd>
+    
+    
+    <div class="description">
+        Check whether profile is valid.
+    </div>
+    
+
+    
+    
+    
+    
+    
+    
+    
+<dl class="details">
+    
+        
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html">Dynamo/Client/Store/web/store.war/shared/js/pageLayout/user.js</a>, <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html#line661">line 661</a>
+    </li></ul></dd>
+    
+    
+    
+    
+    
+    
+    
+</dl>
+
+    
+    
+
+    
+
+    
+    
+    
+    
+    
+    <h5>Returns:</h5>
+    
+            
+<div class="param-desc">
+    true if the profile is valid, otherwise false.
+</div>
+
+
+
+<dl>
+	<dt>
+		Type
+	</dt>
+	<dd>
+		
+<span class="param-type">boolean</span>
+
+
+	</dd>
+</dl>
+
+        
+    
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="isShippingAddressBookModified"><span class="type-signature"></span>isShippingAddressBookModified<span class="signature">()</span><span class="type-signature"></span></h4>
+    
+    
+</dt>
+<dd>
+    
+    
+    <div class="description">
+        Check if the shipping address book contains any addresses which have been modified.
+    </div>
+    
+
+    
+    
+    
+    
+    
+    
+    
+<dl class="details">
+    
+        
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html">Dynamo/Client/Store/web/store.war/shared/js/pageLayout/user.js</a>, <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html#line720">line 720</a>
+    </li></ul></dd>
+    
+    
+    
+    
+    
+    
+    
+</dl>
+
+    
+    
+
+    
+
+    
+    
+    
+    
+    
+    <h5>Returns:</h5>
+    
+            
+<div class="param-desc">
+    true if any shipping addresses are modified, otherwise false.
+</div>
+
+
+
+        
+    
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="isShippingAddressBookValid"><span class="type-signature"></span>isShippingAddressBookValid<span class="signature">()</span><span class="type-signature"></span></h4>
+    
+    
+</dt>
+<dd>
+    
+    
+    <div class="description">
+        Check if all the addresses in the shipping address book are valid.
+    </div>
+    
+
+    
+    
+    
+    
+    
+    
+    
+<dl class="details">
+    
+        
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html">Dynamo/Client/Store/web/store.war/shared/js/pageLayout/user.js</a>, <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html#line742">line 742</a>
+    </li></ul></dd>
+    
+    
+    
+    
+    
+    
+    
+</dl>
+
+    
+    
+
+    
+
+    
+    
+    
+    
+    
+    <h5>Returns:</h5>
+    
+            
+<div class="param-desc">
+    true if all shipping addresses are valid, otherwise false.
+</div>
+
+
+
+        
+    
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="isValid"><span class="type-signature"></span>isValid<span class="signature">()</span><span class="type-signature"> &rarr; {boolean}</span></h4>
+    
+    
+</dt>
+<dd>
+    
+    
+    <div class="description">
+        Check if the complete user profile is valid by checking the components.
+    </div>
+    
+
+    
+    
+    
+    
+    
+    
+    
+<dl class="details">
+    
+        
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html">Dynamo/Client/Store/web/store.war/shared/js/pageLayout/user.js</a>, <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html#line444">line 444</a>
+    </li></ul></dd>
+    
+    
+    
+    
+    
+    
+    
+</dl>
+
+    
+    
+
+    
+
+    
+    
+    
+    
+    
+    <h5>Returns:</h5>
+    
+            
+<div class="param-desc">
+    true if the user profile is valid, otherwise false.
+</div>
+
+
+
+<dl>
+	<dt>
+		Type
+	</dt>
+	<dd>
+		
+<span class="param-type">boolean</span>
+
+
+	</dd>
+</dl>
+
+        
+    
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="navigateToPage"><span class="type-signature"></span>navigateToPage<span class="signature">(hash)</span><span class="type-signature"></span></h4>
+    
+    
+</dt>
+<dd>
+    
+    
+    <div class="description">
+        Navigates to the page based on the given hash.If given hash and current path is samethen it refreshes the current layout with current page id else navigates to the pagebased on the given hash.
+    </div>
+    
+
+    
+    
+    
+    
+    
+        <h5>Parameters:</h5>
+        
+
+<table class="params">
+    <thead>
+	<tr>
+		
+		<th>Name</th>
+		
+		
+		<th>Type</th>
+		
+		
+		
+		
+		
+		<th class="last">Description</th>
+	</tr>
+	</thead>
+	
+	<tbody>
+	
+	
+        <tr>
+            
+                <td class="name"><code>hash</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">page to refresh or redirect to.</td>
+        </tr>
+	
+	
+	</tbody>
+</table>
+    
+    
+    
+<dl class="details">
+    
+        
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html">Dynamo/Client/Store/web/store.war/shared/js/pageLayout/user.js</a>, <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html#line2122">line 2122</a>
+    </li></ul></dd>
+    
+    
+    
+    
+    
+    
+    
+</dl>
+
+    
+    
+
+    
+
+    
+    
+    
+    
+    
+    
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="populateUserFromLocalData"><span class="type-signature"></span>populateUserFromLocalData<span class="signature">(loadAll)</span><span class="type-signature"></span></h4>
+    
+    
+</dt>
+<dd>
+    
+    
+    <div class="description">
+        Read and populate the view model with loggedinAtCheckout, loggedoutAtCheckout, OrderID, loggedInUserName, login and isUserSessionExpired flags.
+    </div>
+    
+
+    
+    
+    
+    
+    
+        <h5>Parameters:</h5>
+        
+
+<table class="params">
+    <thead>
+	<tr>
+		
+		<th>Name</th>
+		
+		
+		<th>Type</th>
+		
+		
+		
+		
+		
+		<th class="last">Description</th>
+	</tr>
+	</thead>
+	
+	<tbody>
+	
+	
+        <tr>
+            
+                <td class="name"><code>loadAll</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">boolean</span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">Flag to control whether we load all data.</td>
+        </tr>
+	
+	
+	</tbody>
+</table>
+    
+    
+    
+<dl class="details">
+    
+        
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html">Dynamo/Client/Store/web/store.war/shared/js/pageLayout/user.js</a>, <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html#line1042">line 1042</a>
+    </li></ul></dd>
+    
+    
+    
+    
+    
+    
+    
+</dl>
+
+    
+    
+
+    
+
+    
+    
+    
+    
+    
+    
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="populateUserViewModel"><span class="type-signature"></span>populateUserViewModel<span class="signature">(userData)</span><span class="type-signature"></span></h4>
+    
+    
+</dt>
+<dd>
+    
+    
+    <div class="description">
+        Populate the user view model.
+    </div>
+    
+
+    
+    
+    
+    
+    
+        <h5>Parameters:</h5>
+        
+
+<table class="params">
+    <thead>
+	<tr>
+		
+		<th>Name</th>
+		
+		
+		<th>Type</th>
+		
+		
+		
+		
+		
+		<th class="last">Description</th>
+	</tr>
+	</thead>
+	
+	<tbody>
+	
+	
+        <tr>
+            
+                <td class="name"><code>userData</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">Object</span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">Object containing source user data.</td>
+        </tr>
+	
+	
+	</tbody>
+</table>
+    
+    
+    
+<dl class="details">
+    
+        
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html">Dynamo/Client/Store/web/store.war/shared/js/pageLayout/user.js</a>, <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html#line1720">line 1720</a>
+    </li></ul></dd>
+    
+    
+    
+    
+    
+    
+    
+</dl>
+
+    
+    
+
+    
+
+    
+    
+    
+    
+    
+    
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="removeLocalData"><span class="type-signature"></span>removeLocalData<span class="signature">()</span><span class="type-signature"></span></h4>
+    
+    
+</dt>
+<dd>
+    
+    
+    <div class="description">
+        Remove user local storage on logout.
+    </div>
+    
+
+    
+    
+    
+    
+    
+    
+    
+<dl class="details">
+    
+        
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html">Dynamo/Client/Store/web/store.war/shared/js/pageLayout/user.js</a>, <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html#line1166">line 1166</a>
+    </li></ul></dd>
+    
+    
+    
+    
+    
+    
+    
+</dl>
+
+    
+    
+
+    
+
+    
+    
+    
+    
+    
+    
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="removeSoftLoginCookie"><span class="type-signature"></span>removeSoftLoginCookie<span class="signature">()</span><span class="type-signature"></span></h4>
+    
+    
+</dt>
+<dd>
+    
+    
+    <div class="description">
+        Remove personalization soft-login cookie on logout.  This cookie is set via HTTP.
+    </div>
+    
+
+    
+    
+    
+    
+    
+    
+    
+<dl class="details">
+    
+        
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html">Dynamo/Client/Store/web/store.war/shared/js/pageLayout/user.js</a>, <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html#line1180">line 1180</a>
+    </li></ul></dd>
+    
+    
+    
+    
+    
+    
+    
+</dl>
+
+    
+    
+
+    
+
+    
+    
+    
+    
+    
+    
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="reset"><span class="type-signature"></span>reset<span class="signature">()</span><span class="type-signature"></span></h4>
+    
+    
+</dt>
+<dd>
+    
+    
+    <div class="description">
+        Reset all registration details.
+    </div>
+    
+
+    
+    
+    
+    
+    
+    
+    
+<dl class="details">
+    
+        
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html">Dynamo/Client/Store/web/store.war/shared/js/pageLayout/user.js</a>, <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html#line459">line 459</a>
+    </li></ul></dd>
+    
+    
+    
+    
+    
+    
+    
+</dl>
+
+    
+    
+
+    
+
+    
+    
+    
+    
+    
+    
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="resetDetails"><span class="type-signature"></span>resetDetails<span class="signature">()</span><span class="type-signature"></span></h4>
+    
+    
+</dt>
+<dd>
+    
+    
+    <div class="description">
+        Reset all the details from the registration fields withoutresetting the email address.
+    </div>
+    
+
+    
+    
+    
+    
+    
+    
+    
+<dl class="details">
+    
+        
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html">Dynamo/Client/Store/web/store.war/shared/js/pageLayout/user.js</a>, <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html#line509">line 509</a>
+    </li></ul></dd>
+    
+    
+    
+    
+    
+    
+    
+</dl>
+
+    
+    
+
+    
+
+    
+    
+    
+    
+    
+    
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="resetLoginData"><span class="type-signature"></span>resetLoginData<span class="signature">()</span><span class="type-signature"></span></h4>
+    
+    
+</dt>
+<dd>
+    
+    
+    <div class="description">
+        Reset login details.
+    </div>
+    
+
+    
+    
+    
+    
+    
+    
+    
+<dl class="details">
+    
+        
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html">Dynamo/Client/Store/web/store.war/shared/js/pageLayout/user.js</a>, <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html#line556">line 556</a>
+    </li></ul></dd>
+    
+    
+    
+    
+    
+    
+    
+</dl>
+
+    
+    
+
+    
+
+    
+    
+    
+    
+    
+    
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="resetModified"><span class="type-signature"></span>resetModified<span class="signature">()</span><span class="type-signature"></span></h4>
+    
+    
+</dt>
+<dd>
+    
+    
+    <div class="description">
+        Reset modified flags on knockout observables.
+    </div>
+    
+
+    
+    
+    
+    
+    
+    
+    
+<dl class="details">
+    
+        
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html">Dynamo/Client/Store/web/store.war/shared/js/pageLayout/user.js</a>, <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html#line574">line 574</a>
+    </li></ul></dd>
+    
+    
+    
+    
+    
+    
+    
+</dl>
+
+    
+    
+
+    
+
+    
+    
+    
+    
+    
+    
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="resetPassword"><span class="type-signature"></span>resetPassword<span class="signature">()</span><span class="type-signature"></span></h4>
+    
+    
+</dt>
+<dd>
+    
+    
+    <div class="description">
+        Reset the password field.
+    </div>
+    
+
+    
+    
+    
+    
+    
+    
+    
+<dl class="details">
+    
+        
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html">Dynamo/Client/Store/web/store.war/shared/js/pageLayout/user.js</a>, <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html#line489">line 489</a>
+    </li></ul></dd>
+    
+    
+    
+    
+    
+    
+    
+</dl>
+
+    
+    
+
+    
+
+    
+    
+    
+    
+    
+    
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="resetShippingAddressBookModified"><span class="type-signature"></span>resetShippingAddressBookModified<span class="signature">()</span><span class="type-signature"></span></h4>
+    
+    
+</dt>
+<dd>
+    
+    
+    <div class="description">
+        Reset modified flags of address objects in the address book.
+    </div>
+    
+
+    
+    
+    
+    
+    
+    
+    
+<dl class="details">
+    
+        
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html">Dynamo/Client/Store/web/store.war/shared/js/pageLayout/user.js</a>, <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html#line592">line 592</a>
+    </li></ul></dd>
+    
+    
+    
+    
+    
+    
+    
+</dl>
+
+    
+    
+
+    
+
+    
+    
+    
+    
+    
+    
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="SamlLoginErrorCallback"><span class="type-signature"></span>SamlLoginErrorCallback<span class="signature">()</span><span class="type-signature"></span></h4>
+    
+    
+</dt>
+<dd>
+    
+    
+    <div class="description">
+        Error callback, when the user is not able to login using SAML credentials
+    </div>
+    
+
+    
+    
+    
+    
+    
+    
+    
+<dl class="details">
+    
+        
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html">Dynamo/Client/Store/web/store.war/shared/js/pageLayout/user.js</a>, <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html#line1343">line 1343</a>
+    </li></ul></dd>
+    
+    
+    
+    
+    
+    
+    
+</dl>
+
+    
+    
+
+    
+
+    
+    
+    
+    
+    
+    
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="SamlLoginSuccessCallback"><span class="type-signature"></span>SamlLoginSuccessCallback<span class="signature">()</span><span class="type-signature"></span></h4>
+    
+    
+</dt>
+<dd>
+    
+    
+    <div class="description">
+        Finish SAML login, after the user is successfully logged-in to OCCS
+    </div>
+    
+
+    
+    
+    
+    
+    
+    
+    
+<dl class="details">
+    
+        
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html">Dynamo/Client/Store/web/store.war/shared/js/pageLayout/user.js</a>, <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html#line1324">line 1324</a>
+    </li></ul></dd>
+    
+    
+    
+    
+    
+    
+    
+</dl>
+
+    
+    
+
+    
+
+    
+    
+    
+    
+    
+    
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="selectDefaultAddress"><span class="type-signature"></span>selectDefaultAddress<span class="signature">(addr)</span><span class="type-signature"></span></h4>
+    
+    
+</dt>
+<dd>
+    
+    
+    <div class="description">
+        Select a default shipping address from the shipping address book.Assumes that addr is a reference to an Address object that already exists in the address book.
+    </div>
+    
+
+    
+    
+    
+    
+    
+        <h5>Parameters:</h5>
+        
+
+<table class="params">
+    <thead>
+	<tr>
+		
+		<th>Name</th>
+		
+		
+		<th>Type</th>
+		
+		
+		
+		
+		
+		<th class="last">Description</th>
+	</tr>
+	</thead>
+	
+	<tbody>
+	
+	
+        <tr>
+            
+                <td class="name"><code>addr</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type"><a href="Address.html">Address</a></span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">An address object.</td>
+        </tr>
+	
+	
+	</tbody>
+</table>
+    
+    
+    
+<dl class="details">
+    
+        
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html">Dynamo/Client/Store/web/store.war/shared/js/pageLayout/user.js</a>, <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html#line776">line 776</a>
+    </li></ul></dd>
+    
+    
+    
+    
+    
+    
+    
+</dl>
+
+    
+    
+
+    
+
+    
+    
+    
+    
+    
+    
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="setContext"><span class="type-signature"></span>setContext<span class="signature">(pContext)</span><span class="type-signature"></span></h4>
+    
+    
+</dt>
+<dd>
+    
+    
+    <div class="description">
+        Set the context data from the UserDataInitializer.
+    </div>
+    
+
+    
+    
+    
+    
+    
+        <h5>Parameters:</h5>
+        
+
+<table class="params">
+    <thead>
+	<tr>
+		
+		<th>Name</th>
+		
+		
+		<th>Type</th>
+		
+		
+		
+		
+		
+		<th class="last">Description</th>
+	</tr>
+	</thead>
+	
+	<tbody>
+	
+	
+        <tr>
+            
+                <td class="name"><code>pContext</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">Object</span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">Context Data</td>
+        </tr>
+	
+	
+	</tbody>
+</table>
+    
+    
+    
+<dl class="details">
+    
+        
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html">Dynamo/Client/Store/web/store.war/shared/js/pageLayout/user.js</a>, <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html#line1972">line 1972</a>
+    </li></ul></dd>
+    
+    
+    
+    
+    
+    
+    
+</dl>
+
+    
+    
+
+    
+
+    
+    
+    
+    
+    
+    
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="updateExpiredPassword"><span class="type-signature"></span>updateExpiredPassword<span class="signature">()</span><span class="type-signature"></span></h4>
+    
+    
+</dt>
+<dd>
+    
+    
+    <div class="description">
+        Change the Profile Password.
+    </div>
+    
+
+    
+    
+    
+    
+    
+    
+    
+<dl class="details">
+    
+        
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html">Dynamo/Client/Store/web/store.war/shared/js/pageLayout/user.js</a>, <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html#line2404">line 2404</a>
+    </li></ul></dd>
+    
+    
+    
+    
+    
+    
+    
+</dl>
+
+    
+    
+
+    
+
+    
+    
+    
+    
+    
+    
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="updateExpiredPasswordUsingToken"><span class="type-signature"></span>updateExpiredPasswordUsingToken<span class="signature">(token, login, password, confirmPassword, success, error)</span><span class="type-signature"></span></h4>
+    
+    
+</dt>
+<dd>
+    
+    
+    <div class="description">
+        Updates the expired/forgotten password provided the token,login, password, confirm password. This method should be used in case tokenis used to update the password.
+    </div>
+    
+
+    
+    
+    
+    
+    
+        <h5>Parameters:</h5>
+        
+
+<table class="params">
+    <thead>
+	<tr>
+		
+		<th>Name</th>
+		
+		
+		<th>Type</th>
+		
+		
+		
+		
+		
+		<th class="last">Description</th>
+	</tr>
+	</thead>
+	
+	<tbody>
+	
+	
+        <tr>
+            
+                <td class="name"><code>token</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">The token to validate</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>login</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">The login id of the user</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>password</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">The password of the user</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>confirmPassword</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">The confirm password field to validate the password against</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>success</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">function</span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">The success function. his will be of the form success(data).                  The data would only contain success as the key and true as a value.                  e.g. {"success" : true}</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>error</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">function</span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">The error function. This will be of the form error(data).                  The data contains the error information.                  e.g. {"code": "83037", "message": "Resetting this account''s password is not allowed. Check the link in your email and try again."}                  The typical errors would be:                  83037: If there was a problem while validating the token.                  23026: If the user input is null or empty.                  83039: If the password and confirm password do not match.                  83032: If there is an error while updating the password.</td>
+        </tr>
+	
+	
+	</tbody>
+</table>
+    
+    
+    
+<dl class="details">
+    
+        
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html">Dynamo/Client/Store/web/store.war/shared/js/pageLayout/user.js</a>, <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html#line2482">line 2482</a>
+    </li></ul></dd>
+    
+    
+    
+    
+    
+    
+    
+</dl>
+
+    
+    
+
+    
+
+    
+    
+    
+    
+    
+    
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="updateLocalData"><span class="type-signature"></span>updateLocalData<span class="signature">(loggedinAtCheckout, loggedoutAtCheckout)</span><span class="type-signature"></span></h4>
+    
+    
+</dt>
+<dd>
+    
+    
+    <div class="description">
+        Update the values of loggedinAtCheckout, and loggedoutAtCheckout and write them to user local storage.
+    </div>
+    
+
+    
+    
+    
+    
+    
+        <h5>Parameters:</h5>
+        
+
+<table class="params">
+    <thead>
+	<tr>
+		
+		<th>Name</th>
+		
+		
+		<th>Type</th>
+		
+		
+		
+		
+		
+		<th class="last">Description</th>
+	</tr>
+	</thead>
+	
+	<tbody>
+	
+	
+        <tr>
+            
+                <td class="name"><code>loggedinAtCheckout</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">boolean</span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">Whether the user is logged in on the checkout page.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>loggedoutAtCheckout</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">boolean</span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">Whether the user is logged out on the checkout page.</td>
+        </tr>
+	
+	
+	</tbody>
+</table>
+    
+    
+    
+<dl class="details">
+    
+        
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html">Dynamo/Client/Store/web/store.war/shared/js/pageLayout/user.js</a>, <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html#line1150">line 1150</a>
+    </li></ul></dd>
+    
+    
+    
+    
+    
+    
+    
+</dl>
+
+    
+    
+
+    
+
+    
+    
+    
+    
+    
+    
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="updateUserProfile"><span class="type-signature"></span>updateUserProfile<span class="signature">()</span><span class="type-signature"></span></h4>
+    
+    
+</dt>
+<dd>
+    
+    
+    <div class="description">
+        Update the user profile details. Invoked on receiving a USER_PROFILE_UPDATE_SUBMIT pubsub event.
+    </div>
+    
+
+    
+    
+    
+    
+    
+    
+    
+<dl class="details">
+    
+        
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html">Dynamo/Client/Store/web/store.war/shared/js/pageLayout/user.js</a>, <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html#line2191">line 2191</a>
+    </li></ul></dd>
+    
+    
+    
+    
+    
+    
+    
+</dl>
+
+    
+    
+
+    
+
+    
+    
+    
+    
+    
+    
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="validateLogin"><span class="type-signature"></span>validateLogin<span class="signature">()</span><span class="type-signature"> &rarr; {boolean}</span></h4>
+    
+    
+</dt>
+<dd>
+    
+    
+    <div class="description">
+        Handle the validation of user data entered during login. Also raises the modified flags onlogin and password fields.
+    </div>
+    
+
+    
+    
+    
+    
+    
+    
+    
+<dl class="details">
+    
+        
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html">Dynamo/Client/Store/web/store.war/shared/js/pageLayout/user.js</a>, <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html#line541">line 541</a>
+    </li></ul></dd>
+    
+    
+    
+    
+    
+    
+    
+</dl>
+
+    
+    
+
+    
+
+    
+    
+    
+    
+    
+    <h5>Returns:</h5>
+    
+            
+<div class="param-desc">
+    true if login is valid, otherwise false.
+</div>
+
+
+
+<dl>
+	<dt>
+		Type
+	</dt>
+	<dd>
+		
+<span class="param-type">boolean</span>
+
+
+	</dd>
+</dl>
+
+        
+    
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="validatePrivilagePageRequest"><span class="type-signature"></span>validatePrivilagePageRequest<span class="signature">(data, event)</span><span class="type-signature"> &rarr; {boolean}</span></h4>
+    
+    
+</dt>
+<dd>
+    
+    
+    <div class="description">
+        Check if user is allowed to navigate to privileged pages and redirect if not. Will do nothingif user profile has unsaved changes.
+    </div>
+    
+
+    
+    
+    
+    
+    
+        <h5>Parameters:</h5>
+        
+
+<table class="params">
+    <thead>
+	<tr>
+		
+		<th>Name</th>
+		
+		
+		<th>Type</th>
+		
+		
+		
+		
+		
+		<th class="last">Description</th>
+	</tr>
+	</thead>
+	
+	<tbody>
+	
+	
+        <tr>
+            
+                <td class="name"><code>data</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">Object</span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">The object bound to the event.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>event</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">Object</span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">The current event.</td>
+        </tr>
+	
+	
+	</tbody>
+</table>
+    
+    
+    
+<dl class="details">
+    
+        
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html">Dynamo/Client/Store/web/store.war/shared/js/pageLayout/user.js</a>, <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html#line2096">line 2096</a>
+    </li></ul></dd>
+    
+    
+    
+    
+    
+    
+    
+</dl>
+
+    
+    
+
+    
+
+    
+    
+    
+    
+    
+    <h5>Returns:</h5>
+    
+            
+<div class="param-desc">
+    true if the user profile has unsaved changes, otherwise false
+</div>
+
+
+
+<dl>
+	<dt>
+		Type
+	</dt>
+	<dd>
+		
+<span class="param-type">boolean</span>
+
+
+	</dd>
+</dl>
+
+        
+    
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="validateTokenForPasswordUpdate"><span class="type-signature"></span>validateTokenForPasswordUpdate<span class="signature">(token, success, error)</span><span class="type-signature"></span></h4>
+    
+    
+</dt>
+<dd>
+    
+    
+    <div class="description">
+        Validates the token provided and makes sure that the tokenis valid before updating a forgotten/expired password.This is not a mandatory step but is recommended to makesure that extra steps are not performed if the tokenitself is not valid.
+    </div>
+    
+
+    
+    
+    
+    
+    
+        <h5>Parameters:</h5>
+        
+
+<table class="params">
+    <thead>
+	<tr>
+		
+		<th>Name</th>
+		
+		
+		<th>Type</th>
+		
+		
+		
+		
+		
+		<th class="last">Description</th>
+	</tr>
+	</thead>
+	
+	<tbody>
+	
+	
+        <tr>
+            
+                <td class="name"><code>token</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">The token to validate.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>success</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">function</span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">The success function. This will be of the form success(data).                  The data would only contain success as the key and true as a value.                  e.g. {"success" : true}</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>error</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">function</span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">The error function. This will be of the form error(data).                  The data contains the error information.                  e.g. {"code": "83037", "message": "Resetting this account''s password is not allowed. Check the link in your email and try again."}                  The typical errors would be:                  83037: If there was a problem while validating the token.</td>
+        </tr>
+	
+	
+	</tbody>
+</table>
+    
+    
+    
+<dl class="details">
+    
+        
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html">Dynamo/Client/Store/web/store.war/shared/js/pageLayout/user.js</a>, <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html#line2433">line 2433</a>
+    </li></ul></dd>
+    
+    
+    
+    
+    
+    
+    
+</dl>
+
+    
+    
+
+    
+
+    
+    
+    
+    
+    
+    
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="validateUser"><span class="type-signature"></span>validateUser<span class="signature">()</span><span class="type-signature"> &rarr; {boolean}</span></h4>
+    
+    
+</dt>
+<dd>
+    
+    
+    <div class="description">
+        Handle the validation of the user data entered while creating an account.
+    </div>
+    
+
+    
+    
+    
+    
+    
+    
+    
+<dl class="details">
+    
+        
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html">Dynamo/Client/Store/web/store.war/shared/js/pageLayout/user.js</a>, <a href="Dynamo_Client_Store_web_store.war_shared_js_pageLayout_user.js.html#line422">line 422</a>
+    </li></ul></dd>
+    
+    
+    
+    
+    
+    
+    
+</dl>
+
+    
+    
+
+    
+
+    
+    
+    
+    
+    
+    <h5>Returns:</h5>
+    
+            
+<div class="param-desc">
+    <code>true</code> if the user details are valid, and<code>false</code> otherwise.
+</div>
+
+
+
+<dl>
+	<dt>
+		Type
+	</dt>
+	<dd>
+		
+<span class="param-type">boolean</span>
+
+
+	</dd>
+</dl>
+
+        
+    
+    
+</dd>
+
+        </dl>
+    
+    
+    
+    
+    
+</article>
+
+</section>  
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Index</a></h2><h3>Modules</h3><ul><li><a href="module-ccKoErrorWrapper.html">ccKoErrorWrapper</a></li><li><a href="module-ccKoExtensions.html">ccKoExtensions</a></li></ul><h3>Classes</h3><ul><li><a href="Address.html">Address</a></li><li><a href="CartViewModel.html">CartViewModel</a></li><li><a href="CCStoreConfiguration.html">CCStoreConfiguration</a></li><li><a href="CheckoutScheduledOrder.html">CheckoutScheduledOrder</a></li><li><a href="delegatedAdminContacts.html">delegatedAdminContacts</a></li><li><a href="DynamicProperty.html">DynamicProperty</a></li><li><a href="DynamicPropertyMetaContainer.html">DynamicPropertyMetaContainer</a></li><li><a href="EventDispatcher.html">EventDispatcher</a></li><li><a href="GiftCardViewModel.html">GiftCardViewModel</a></li><li><a href="GiftProductListingViewModel.html">GiftProductListingViewModel</a></li><li><a href="global.html#InfinityViewModel">InfinityViewModel</a></li><li><a href="IntegrationViewModel.html">IntegrationViewModel</a></li><li><a href="ko.bindingHandlers.background.html">background</a></li><li><a href="ko.bindingHandlers.carouselSwipe.html">carouselSwipe</a></li><li><a href="ko.bindingHandlers.ccDateTime.html">ccDateTime</a></li><li><a href="ko.bindingHandlers.ccForm.html">ccForm</a></li><li><a href="ko.bindingHandlers.ccLink.html">ccLink</a></li><li><a href="ko.bindingHandlers.ccValidation.html">ccValidation</a></li><li><a href="ko.bindingHandlers.checkbox.html">checkbox</a></li><li><a href="ko.bindingHandlers.chosen.html">chosen</a></li><li><a href="ko.bindingHandlers.contextResourcesNamespace.html">contextResourcesNamespace</a></li><li><a href="ko.bindingHandlers.currency.html">currency</a></li><li><a href="ko.bindingHandlers.datepicker.html">datepicker</a></li><li><a href="ko.bindingHandlers.datepopover.html">datepopover</a></li><li><a href="ko.bindingHandlers.draggable.html">draggable</a></li><li><a href="ko.bindingHandlers.droppable.html">droppable</a></li><li><a href="ko.bindingHandlers.fade.html">fade</a></li><li><a href="ko.bindingHandlers.hover.html">hover</a></li><li><a href="ko.bindingHandlers.image.html">image</a></li><li><a href="ko.bindingHandlers.imageSource.html">imageSource</a></li><li><a href="ko.bindingHandlers.imageZoom.html">imageZoom</a></li><li><a href="ko.bindingHandlers.localeText.html">localeText</a></li><li><a href="ko.bindingHandlers.makeAccess.html">makeAccess</a></li><li><a href="ko.bindingHandlers.modal.html">modal</a></li><li><a href="ko.bindingHandlers.modalTabbingContraint.html">modalTabbingContraint</a></li><li><a href="ko.bindingHandlers.onRender.html">onRender</a></li><li><a href="ko.bindingHandlers.popeditor.html">popeditor</a></li><li><a href="ko.bindingHandlers.popover.html">popover</a></li><li><a href="ko.bindingHandlers.productImageSource.html">productImageSource</a></li><li><a href="ko.bindingHandlers.productVariantImageSource.html">productVariantImageSource</a></li><li><a href="ko.bindingHandlers.propertyEditor.html">propertyEditor</a></li><li><a href="ko.bindingHandlers.radio.html">radio</a></li><li><a href="ko.bindingHandlers.richTextEditor.html">richTextEditor</a></li><li><a href="ko.bindingHandlers.scrollAffix.html">scrollAffix</a></li><li><a href="ko.bindingHandlers.select2.html">select2</a></li><li><a href="ko.bindingHandlers.select2Tags.html">select2Tags</a></li><li><a href="ko.bindingHandlers.selectable.html">selectable</a></li><li><a href="ko.bindingHandlers.slide.html">slide</a></li><li><a href="ko.bindingHandlers.slider.html">slider</a></li><li><a href="ko.bindingHandlers.spectrum.html">spectrum</a></li><li><a href="ko.bindingHandlers.textCheck.html">textCheck</a></li><li><a href="ko.bindingHandlers.timepicker.html">timepicker</a></li><li><a href="ko.bindingHandlers.triggerMessage.html">triggerMessage</a></li><li><a href="ko.bindingHandlers.validatableTarget.html">validatableTarget</a></li><li><a href="ko.bindingHandlers.validatableValue.html">validatableValue</a></li><li><a href="ko.bindingHandlers.widgetLocaleText.html">widgetLocaleText</a></li><li><a href="koValidation.alphaNumeric.html">alphaNumeric</a></li><li><a href="koValidation.alphaNumericNoSpaces.html">alphaNumericNoSpaces</a></li><li><a href="koValidation.alphaNumericNoSpacesNoDashesWithSeperators.html">alphaNumericNoSpacesNoDashesWithSeperators</a></li><li><a href="koValidation.alphaNumericNoSpacesWithSeperators.html">alphaNumericNoSpacesWithSeperators</a></li><li><a href="koValidation.alphaNumericWithSeperators.html">alphaNumericWithSeperators</a></li><li><a href="koValidation.bool.html">bool</a></li><li><a href="koValidation.creditcard.html">creditcard</a></li><li><a href="koValidation.cvv.html">cvv</a></li><li><a href="koValidation.endmonth.html">endmonth</a></li><li><a href="koValidation.endyear.html">endyear</a></li><li><a href="koValidation.importFileName.html">importFileName</a></li><li><a href="koValidation.laterDate.html">laterDate</a></li><li><a href="koValidation.match.html">match</a></li><li><a href="koValidation.mediaZipFileName.html">mediaZipFileName</a></li><li><a href="koValidation.number.html">number</a></li><li><a href="koValidation.observablePattern.html">observablePattern</a></li><li><a href="koValidation.password.html">password</a></li><li><a href="koValidation.price.html">price</a></li><li><a href="koValidation.propertyIdAlreadyInUse.html">propertyIdAlreadyInUse</a></li><li><a href="koValidation.propertyNameAlreadyInUse.html">propertyNameAlreadyInUse</a></li><li><a href="koValidation.restrictSlashCharacters.html">restrictSlashCharacters</a></li><li><a href="koValidation.startmonth.html">startmonth</a></li><li><a href="koValidation.startyear.html">startyear</a></li><li><a href="koValidation.uniqueTrimmed.html">uniqueTrimmed</a></li><li><a href="koValidation.uniqueTrimmedCaseInsensitive.html">uniqueTrimmedCaseInsensitive</a></li><li><a href="koValidation.url.html">url</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.addTemplate.html">addTemplate</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.agentBar.html">agentBar</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.ccDate.html">ccDate</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.ccNumber.html">ccNumber</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.ccResizeImage.html">ccResizeImage</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.disabled.html">disabled</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.element.html">element</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.embeddedAssistance.html">embeddedAssistance</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.fireChange.html">fireChange</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.inTabFlow.html">inTabFlow</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.noIndexMeta.html">noIndexMeta</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.previewBar.html">previewBar</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.setContextVariable.html">setContextVariable</a></li><li><a href="multiCartViewModel.html">multiCartViewModel</a></li><li><a href="NavStateViewModel.html">NavStateViewModel</a></li><li><a href="OrderDetailsViewModel.html">OrderDetailsViewModel</a></li><li><a href="OrderHistoryViewModel.html">OrderHistoryViewModel</a></li><li><a href="OrdersPendingApprovalViewModel.html">OrdersPendingApprovalViewModel</a></li><li><a href="OrderViewModel.html">OrderViewModel</a></li><li><a href="Organization.html">Organization</a></li><li><a href="ParentOrganisation.html">ParentOrganisation</a></li><li><a href="ProductListingSearchViewModel.html">ProductListingSearchViewModel</a></li><li><a href="ProductListingViewModel.html">ProductListingViewModel</a></li><li><a href="ProductTypes.html">ProductTypes</a></li><li><a href="ProductViewModel.html">ProductViewModel</a></li><li><a href="PromotionUpsellContainer.html">PromotionUpsellContainer</a></li><li><a href="PubSub.topicNames.html">topicNames</a></li><li><a href="PurchaseListListingViewModel.html">PurchaseListListingViewModel</a></li><li><a href="PurchaseListViewModel.html">PurchaseListViewModel</a></li><li><a href="RegistrationRequestSearchViewModel.html">RegistrationRequestSearchViewModel</a></li><li><a href="resetCVV.html">resetCVV</a></li><li><a href="resetGiftCardPin.html">resetGiftCardPin</a></li><li><a href="resetPaymentDetails.html">resetPaymentDetails</a></li><li><a href="ReturnItem.html">ReturnItem</a></li><li><a href="ReturnViewModel.html">ReturnViewModel</a></li><li><a href="scheduledOrderList.html">scheduledOrderList</a></li><li><a href="SearchRestClient.html">SearchRestClient</a></li><li><a href="ServerData.html">ServerData</a></li><li><a href="UserViewModel.html">UserViewModel</a></li><li><a href="WidgetViewModel.html">WidgetViewModel</a></li><li><a href="WishlistContentViewModel.html">WishlistContentViewModel</a></li></ul><h3>Namespaces</h3><ul><li><a href="ko.bindingHandlers.html">bindingHandlers</a></li><li><a href="ko.extenders.html">extenders</a></li><li><a href="koValidation.html">koValidation</a></li></ul><h3>Global</h3><ul><li><a href="global.html#addItemToPurchaseList">addItemToPurchaseList</a></li><li><a href="global.html#callWidgetMethodIfApplicable">callWidgetMethodIfApplicable</a></li><li><a href="global.html#CartViewModel#deleteParticularIncompleteOrdersDeletesanincompleteorderbyorderId">CartViewModel#deleteParticularIncompleteOrdersDeletes an incomplete order by orderId</a></li><li><a href="global.html#CCEETagProcessor">CCEETagProcessor</a></li><li><a href="global.html#doesSiteExist">doesSiteExist</a></li><li><a href="global.html#fetchSkuDetailsListError">fetchSkuDetailsListError</a></li><li><a href="global.html#fetchSkuDetailsListSuccess">fetchSkuDetailsListSuccess</a></li><li><a href="global.html#formatSiteText">formatSiteText</a></li><li><a href="global.html#handleInitiateEditSuccess">handleInitiateEditSuccess</a></li><li><a href="global.html#isModified">isModified</a></li><li><a href="global.html#isValidDeterminewhetherornotthepaymentdetailsobjectisvalidbasedonthevalidityofitscomponentparts.Thiswillnotcauseerrormessagestobedisplayedforanyobservablevaluesthatareunchangedandhaveneverreceivedfocusontherelatedformfield(s).">isValidDetermine whether or not the payment details object is validbased on the validity of its component parts. This will notcause error messages to be displayed for any observable valuesthat are unchanged and have never received focus on the related form field(s).</a></li><li><a href="global.html#justFocused">justFocused</a></li><li><a href="global.html#mapProperties">mapProperties</a></li><li><a href="global.html#MENU_CLOSE_TIMEOUT">MENU_CLOSE_TIMEOUT</a></li><li><a href="global.html#populateData">populateData</a></li><li><a href="global.html#populateProductData">populateProductData</a></li><li><a href="global.html#reset">reset</a></li><li><a href="global.html#resetModified">resetModified</a></li><li><a href="global.html#Resetsstylingforthelazilyloadedimage">Resets styling for the lazily loaded image</a></li><li><a href="global.html#Setsupstylingfortheimagetobelazilyloaded">Sets up styling for the image to be lazily loaded</a></li><li><a href="global.html#ShopperContextViewModel">ShopperContextViewModel</a></li><li><a href="global.html#thelistofpropertiestoignorewhilecopyingdynamicpropertiestoaddressobject">the list of properties to ignore while copying dynamic properties to address object</a></li><li><a href="global.html#validatePaymentDetailsForceallrelevantmemberobservablestoperformtheirvalidationnow&displaytheerrors(ifany)">validatePaymentDetailsForce all relevant member observables to perform theirvalidation now & display the errors (if any)</a></li><li><a href="global.html#WidgetQueue">WidgetQueue</a></li></ul>
+</nav>
+
+<br clear="both">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.0</a> on Wed Feb 26 2020 18:23:02 GMT+0530 (IST)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

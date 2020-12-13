@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: Dynamo/Client/Admin/web/admin.war/js/pageLayout/preview-layout-container.js</title>
+    
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+    
+    <h1 class="page-title">Source: Dynamo/Client/Admin/web/admin.war/js/pageLayout/preview-layout-container.js</h1>
+    
+    
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source"><code>/**
+ * @fileoverview Layout container class for the preview in Design Studio.
+ */
+
+/*global $ */
+/*global require */
+define(
+  //-------------------------------------------------------------------
+  // PACKAGE NAME
+  //-------------------------------------------------------------------
+  'previewPageLayout/preview-layout-container',
+
+//-------------------------------------------------------------------
+//DEPENDENCIES
+//-------------------------------------------------------------------
+  ['pageLayout/layout-container',
+   'pageLayout/user',
+   'pageLayout/product',
+   'viewModels/orderHistoryViewModel',
+   'viewModels/delegatedAdminContacts',
+   'viewModels/scheduledOrderList',
+   'pageLayout/scheduled-order',
+   'pubsub',
+   'ccRestClient',
+   'ccConstants'
+   ],
+
+// -------------------------------------------------------------------
+// MODULE DEFINTIION
+// -------------------------------------------------------------------
+   function(LayoutContainer, UserViewModel, ProductViewModel, OrderHistoryViewModel, DelegatedAdminContacts, ScheduledOrderList, ScheduledOrder, pubsub, ccRestClient, ccConstants) {
+
+    "use strict";
+    
+    var siteList;
+    var siteId;
+    
+    LayoutContainer.prototype.getSites = function() {
+      ccRestClient.request(ccConstants.ENDPOINT_SITES_LIST_SITES, {},
+        function(data) {
+          siteList = data.items;
+        }, 
+        function(error) {
+          console.log(error); 
+        });
+    };
+    LayoutContainer.prototype.getSites();
+    
+    UserViewModel.getInstance = function(pAdapter, pUserData, pParams) {
+      var mockAdapter = {
+        persistCreate: function() {},
+        loadJSON: function() {}
+      };
+
+      var userViewModel = new UserViewModel(mockAdapter, {});
+
+      userViewModel.loggedIn(true);
+      userViewModel.firstName('John');
+      userViewModel.lastName('Doe');
+      userViewModel.emailAddress('John.Doe@email.com');
+      userViewModel.locale('en');
+
+      userViewModel.contextData = {'global' : {'enableProfileRegistrationEmailCheck' : false}};
+
+      return userViewModel;
+    }
+
+    LayoutContainer.prototype.UserViewModel = UserViewModel;
+
+    // Handle clean build scenario in design studio
+    // Intercept null product and pass in some defaults to avoid javascript errors and make the page render
+
+    var _oldProductConstructor = ProductViewModel.prototype.constructor;
+    var _oldProductPrototype = ProductViewModel.prototype;
+
+    ProductViewModel = function ProductViewModel(pProduct, params) {
+
+      if (pProduct == null) {
+        console.log("product.js - dummy product (preview)");
+
+        pProduct = {  "shippingSurcharge":null, "primaryFullImageURL":"", "primaryLargeImageURL":"", "weight":null, "relatedProducts":null, "parentCategory":null,
+          "smallImageURLs":[ ], "orderLimit":null, "avgCustRating":null, "type":"", "productImagesMetadata":[ ], "id":"0", "primaryImageAltText":"",
+          "sourceImageURLs":[ ], "height":null, "seoMetaInfo":null, "variantValuesOrder":{ }, "listPrice":0, "fullImageURLs":[ ], "description":"",
+          "longDescription":"", "length":null, "seoDescriptionDerived":"dummy product", "defaultProductListingSku":null,
+          "fabric":"", "primaryMediumImageURL":"", "mediumImageURLs":[ ], "width":null, "seoKeywordsDerived":"", "primarySourceImageURL":"", "primaryThumbImageURL":"",
+          "childSKUs":[ ], "parentCategories":[ {  "childCategories":null, "id":"0", "categoryImages":[ ], "route":"", "description":null, "longDescription":null,
+            "active":true, "categoryPaths":[ ], "displayName":"", "fixedParentCategories":[ ], "repositoryId":"0" } ], "primarySmallImageURL":"",
+            "repositoryId":"0", "thumbImageURLs":[ ], "route":"", "primaryImageTitle":"", "active":true, "brand":"", "largeImageURLs":[ ],
+            "salePrice":null, "displayName":"", "seoTitleDerived":"" };
+      }
+
+      _oldProductConstructor.call(this, pProduct, params);
+    }
+    ProductViewModel.prototype = _oldProductPrototype;
+
+    LayoutContainer.prototype.ProductViewModel = ProductViewModel;
+
+
+    // Handle fetching orders for Order History Layout preview
+    OrderHistoryViewModel.prototype.fetchBlock = function(startingIndex) {
+      var orders = [
+                    {
+                      "submittedDate": "2014-04-23T06:20:16.377Z",
+                      "total": 58.95,
+                      "lastModifiedDate": "2014-04-23T06:20:16.379Z",
+                      "creationDate": "2014-04-23T06:20:10.818Z",
+                      "currencyCode": "USD",
+                      "status": "SUBMITTED",
+                      "orderId": "o10015",
+                      "priceListGroup":{
+                        "currency":{
+                          "currencyCode":"USD",
+                          "fractionalDigits":2,
+                          "symbol":"$"
+                        }
+                      }
+                    },
+                    {
+                      "submittedDate": "2014-04-23T06:19:18.944Z",
+                      "total": 89.5,
+                      "lastModifiedDate": "2014-04-23T06:19:19.025Z",
+                      "creationDate": "2014-04-23T06:19:08.517Z",
+                      "currencyCode": "USD",
+                      "status": "SUBMITTED",
+                      "orderId": "o10009",
+                      "priceListGroup":{
+                        "currency":{
+                          "currencyCode":"USD",
+                          "fractionalDigits":2,
+                          "symbol":"$"
+                        }
+                      }
+                    },
+                    {
+                      "submittedDate": null,
+                      "total": 79,
+                      "lastModifiedDate": "2014-04-22T18:28:03.996Z",
+                      "creationDate": "2014-04-22T18:28:03.862Z",
+                      "currencyCode": "USD",
+                      "status": "INCOMPLETE",
+                      "orderId": "o10001",
+                      "priceListGroup":{
+                        "currency":{
+                          "currencyCode":"USD",
+                          "fractionalDigits":2,
+                          "symbol":"$"
+                        }
+                      }
+                    }
+                    ];
+
+      this.addData(orders, orders.length, 0);
+    };
+
+    DelegatedAdminContacts.prototype.fetchBlock = function(startingIndex) {
+      var members = [{
+        "lastName": "Adabala",
+        "firstName": "Karthik",
+        "profileType": "b2b_user",
+        "roles": [{
+          "function": "admin",
+          "repositoryId": "100013"
+        }, {
+          "function": "buyer",
+          "repositoryId": "100014"
+        }],
+        "repositoryId": "110000",
+        "roleString": "Buyer, Admin",
+        "receiveEmail": "yes",
+        "active": true,
+        "id": "110000",
+        "locale": "en",
+        "parentOrganization": {
+          "repositoryId": "or-300007",
+          "name": "Test Account",
+          "active": true,
+          "description": "Test Account",
+          "shippingAddress": null,
+          "secondaryAddresses": {},
+          "billingAddress": null,
+          "id": "or-300007"
+        },
+        "email": "satyakarthik.adabala@oracle.com"
+      }, {
+        "lastName": "Mekole",
+        "firstName": "Sanjay",
+        "profileType": "b2b_user",
+        "roles": [{
+          "function": "buyer",
+          "repositoryId": "100014"
+        }],
+        "repositoryId": "110001",
+        "roleString": "Buyer",
+        "receiveEmail": "yes",
+        "active": true,
+        "id": "110001",
+        "locale": "en",
+        "parentOrganization": {
+          "repositoryId": "or-300007",
+          "name": "Test Account",
+          "active": true,
+          "description": "Test Account",
+          "shippingAddress": null,
+          "secondaryAddresses": {},
+          "billingAddress": null,
+          "id": "or-300007"
+        },
+        "email": "sanjay.mekole@oracle.com"
+      }];
+      this.addData(members, members.length, 0);
+      this.isDelegatedAdmin(true);
+    };
+
+   ScheduledOrderList.prototype.fetchBlock = function(startingIndex) {
+      var orders = [{"lastError":null,
+        "endDate":null,
+        "type":"scheduledOrder",
+        "lastScheduledRun":"2016-11-25T00:00:00.000Z",
+        "schedule":{"daysInMonth":[],"weeksInMonth":[1,2,3,4,5],"monthsInYear":[0,1,2,3,4,5,6,7,8,9,10,11],"daysOfWeek":[1,2,3,4,5,6,7],"occurrenceInDay":1},
+        "templateOrderId":"o30427",
+        "profileId":"117235",
+        "repositoryId":"sco10007",
+        "name":"SchOrderDaily",
+        "nextScheduledRun":"2016-11-26T00:00:00.000Z",
+        "state":"Active",
+        "frequency":"Daily",
+        "id":"sco10007",
+        "startDate":"2016-11-24T00:00:00.000Z",
+        "createDate":"2016-11-25T07:12:47.000Z"
+       }, {"lastError":null,
+         "endDate":null,
+         "type":"scheduledOrder",
+         "lastScheduledRun":"2016-11-25T00:00:00.000Z",
+         "schedule":{"daysInMonth":[],"weeksInMonth":[1,2,3,4,5],"monthsInYear":[0,1,2,3,4,5,6,7,8,9,10,11],"daysOfWeek":[1,2,3,4,5,6,7],"occurrenceInDay":1},
+         "templateOrderId":"o30455",
+         "profileId":"117235",
+         "repositoryId":"sco10008",
+         "name":"SchOrderMock",
+         "frequency":"Weekly",
+         "nextScheduledRun":"",
+         "state":"Suspended",
+         "id":"sco10008",
+         "startDate":"2016-11-24T00:00:00.000Z",
+         "createDate":"2016-11-25T07:12:47.000Z"
+        },{"lastError":null,
+          "endDate":null,
+          "type":"scheduledOrder",
+          "lastScheduledRun":"2016-11-25T00:00:00.000Z",
+          "schedule":{"daysInMonth":[],"weeksInMonth":[1,2,3,4,5],"monthsInYear":[0,1,2,3,4,5,6,7,8,9,10,11],"daysOfWeek":[1,2,3,4,5,6,7],"occurrenceInDay":1},
+          "templateOrderId":"o30423",
+          "profileId":"117235",
+          "repositoryId":"sco10005",
+          "name":"SchOrder",
+          "frequency":"Monthly",
+          "nextScheduledRun":"2016-11-26T00:00:00.000Z",
+          "state":"Active",
+          "id":"sco10005",
+          "startDate":"2016-11-24T00:00:00.000Z",
+          "createDate":"2016-11-25T07:12:47.000Z"
+         }];
+
+      this.addData(orders, orders.length, 0);
+    };
+
+    ScheduledOrder.prototype.load = function(startingIndex) {
+      var scheduledOrder = {
+        "id": "sco10001",
+        "name": "test 123231",
+        "createDate": "2016-11-16T10:00:07.343Z",
+        "startDate": "2016-12-01T00:00:00.000Z",
+        "endDate": "2018-01-18T00:00:00.000Z",
+        "type": "scheduledOrder",
+        "state": "active",
+        "schedule": {
+          "weeksInMonth": [1,2,3,4,5],
+          "monthsInYear": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+          "daysOfWeek": [1,2,3,4,5,6,7],
+          "occurrenceInDay": 1
+        },
+        "executionStatusList" : [{"executionDate":"2016-10-26T10:31:16.000Z","orderId":"o10047","errorMessages":"","orderTotal":"58.40"},
+                                 {"executionDate":"2016-10-19T10:31:16.000Z","orderId":"","errorMessages":"Item Out of stock","orderTotal":"60.00"},
+                                 {"executionDate":"2016-10-12T10:31:16.000Z","orderId":"o10079","errorMessages":"","orderTotal":"59.00"}],
+        "templateOrderId": "o30411",
+        "clonedOrders": [],
+        "profileId": "se-570031",
+        "nextScheduledRun": "2017-01-01T00:00:00.000Z",
+        "links": [{
+          "rel": "self",
+          "href": "http://localhost:9080/ccstoreui/v1/scheduledOrders/sco10001?orderDetails=true"
+        }],
+        "templateOrder": {
+          "creationTime": 1479290403626,
+          "dynamicProperties": [],
+          "payments": [{
+            "PONumber": "1234",
+            "paymentGroupId": "pg30411",
+            "amount": 58.4,
+            "gatewayName": null,
+            "cardType": null,
+            "uiIntervention": null,
+            "paymentMethod": "tokenizedCreditCard",
+            "isAmountRemaining": true,
+            "paymentState": "INITIAL",
+            "cardNumber": "xxxxxxxxxxxx1111"
+          }],
+          "orderStatus": "Scheduled order template",
+          "submittedDate": null,
+          "uuid": null,
+          "organizationId": null,
+          "priceInfo": {
+            "amount": 29.97,
+            "total": 58.4,
+            "shipping": 25.0,
+            "shippingSurchargeValue": 0.0,
+            "tax": 3.43,
+            "subTotal": 29.97,
+            "currencyCode": "USD",
+            "totalWithoutTax": 54.97
+          },
+          "id": "o30411",
+          "state": "TEMPLATE",
+          "trackingNumber": null,
+          "order": {
+            "items": [{
+              "unitPrice": 9.99,
+              "primaryImageTitle": "Cat5 Networking Cable",
+              "primaryThumbImageURL": "/ccstore/v1/images/?source=/file/products/cat5cable_LARGE.jpg&amp;height=100&amp;width=100",
+              "quantity": 3,
+              "productId": "prod10026",
+              "rawTotalPrice": 29.97,
+              "salePrice": 0.0,
+              "detailedItemPriceInfo": [{
+                "discounted": false,
+                "amount": 29.97,
+                "quantity": 3,
+                "tax": 1.87,
+                "orderDiscountShare": 0.0,
+                "detailedUnitPrice": 9.99,
+                "currencyCode": "USD"
+              }],
+              "displayName": "Cat5 Networking Cable",
+              "shippingSurchargeValue": 0.0,
+              "giftWithPurchaseCommerceItemMarkers": [],
+              "discountAmount": 0.0,
+              "active": true,
+              "catRefId": "sku10008",
+              "discountInfo": [],
+              "route": "/cat5-networking-cable/product/prod10026",
+              "price": 29.97,
+              "variant": [],
+              "primaryImageAltText": "Cat5 Networking Cable",
+              "stockStatus": {
+                    "catalogId": "cloudLakeCatalog",
+                    "productId": "prod10026",
+                    "orderableQuantity": 3,
+                    "stockStatus": "IN_STOCK",
+                    "catRefId": "sku10008"
+               },
+              "listPrice": 9.99
+            }],
+            "numberOfItems": 3
+          },
+          "taxPriceInfo": {
+            "cityTax": 0.0,
+            "amount": 3.43,
+            "valueAddedTax": 0.0,
+            "countyTax": 0.0,
+            "isTaxIncluded": false,
+            "miscTax": 0.0,
+            "districtTax": 0.0,
+            "stateTax": 3.43,
+            "countryTax": 0.0
+          },
+          "shippingGroup": {
+            "shippingMethodDescription": "Priority"
+          },
+          "shippingGroups": [{
+            "taxPriceInfo": {
+              "cityTax": 0.0,
+              "amount": 3.43,
+              "valueAddedTax": 0.0,
+              "countyTax": 0.0,
+              "isTaxIncluded": false,
+              "miscTax": 0.0,
+              "districtTax": 0.0,
+              "stateTax": 3.43,
+              "countryTax": 0.0
+            },
+            "shippingMethod": {
+              "shippingTax": 1.56,
+              "cost": 25.0,
+              "value": "priorityShippingMethod",
+              "shippingMethodDescription": "Priority"
+            },
+            "shippingGroupId": "sg30411",
+            "submittedDate": null,
+            "priceInfo": {
+              "amount": 29.97,
+              "total": 58.4,
+              "shipping": 25.0,
+              "shippingSurchargeValue": 0.0,
+              "tax": 3.43,
+              "subTotal": 29.97,
+              "currencyCode": "USD",
+              "totalWithoutTax": 54.97
+            },
+            "discountInfo": {
+              "orderDiscount": 0.0,
+              "shippingDiscount": 0.0,
+              "discountDescList": []
+            },
+            "shipOnDate": null,
+            "trackingInfo": [],
+            "actualShipDate": null,
+            "shippingAddress": {
+              "lastName": "DAVIS",
+              "country": "US",
+              "address3": null,
+              "address2": null,
+              "city": "Indian Orchard",
+              "prefix": null,
+              "address1": "203 Main Street",
+              "postalCode": "01151",
+              "companyName": null,
+              "jobTitle": null,
+              "regionName": "Massachusetts",
+              "county": null,
+              "suffix": null,
+              "firstName": "GRACE",
+              "phoneNumber": "9087654321",
+              "faxNumber": null,
+              "alias": null,
+              "middleName": null,
+              "state": "MA",
+              "countryName": "United States",
+              "email": "GRACE.DAVIS@test.com"
+            },
+            "items": [{
+              "unitPrice": 9.99,
+              "primaryImageTitle": "Cat5 Networking Cable",
+              "primaryThumbImageURL": "/ccstore/v1/images/?source=/file/products/cat5cable_LARGE.jpg&amp;height=100&amp;width=100",
+              "quantity": 3,
+              "productId": "prod10026",
+              "rawTotalPrice": 29.97,
+              "returnedQuantity": 0,
+              "salePrice": 0.0,
+              "detailedItemPriceInfo": [{
+                "discounted": false,
+                "amount": 29.97,
+                "quantity": 3,
+                "tax": 1.87,
+                "orderDiscountShare": 0.0,
+                "detailedUnitPrice": 9.99,
+                "currencyCode": "USD"
+              }],
+              "displayName": "Cat5 Networking Cable",
+              "shippingSurchargeValue": 0.0,
+              "discountAmount": 0.0,
+              "active": true,
+              "catRefId": "sku10008",
+              "discountInfo": [],
+              "route": "/cat5-networking-cable/product/prod10026",
+              "price": 29.97,
+              "variant": [],
+              "onSale": false,
+              "primaryImageAltText": "Cat5 Networking Cable",
+              "stateDetailsAsUser": "The item has been initialized within the shipping group",
+              "listPrice": 9.99,
+              "status": "INITIAL"
+            }],
+            "trackingNumber": null,
+            "status": "INITIAL"
+          }],
+          "lastModifiedDate": "2016-11-16T10:00:07.341Z",
+          "shippingMethod": {
+            "shippingTax": 1.56,
+            "value": "priorityShippingMethod",
+            "cost": 25.0
+          },
+          "priceListGroup": {
+            "deleted": false,
+            "endDate": null,
+            "displayName": "Default Price Group",
+            "repositoryId": "defaultPriceGroup",
+            "listPriceList": {
+              "repositoryId": "listPrices"
+            },
+            "active": true,
+            "salePriceList": {
+              "repositoryId": "salePrices"
+            },
+            "currency": {
+              "symbol": "$",
+              "displayName": "US Dollar",
+              "repositoryId": "en_US",
+              "fractionalDigits": 2,
+              "currencyCode": "USD",
+              "numericCode": "840"
+            },
+            "id": "defaultPriceGroup",
+            "locale": "en_US",
+            "shippingSurchargePriceList": {
+              "repositoryId": "shippingSurchargePrices"
+            },
+            "startDate": null
+          },
+          "creationDate": "2016-11-16T10:00:03.626Z",
+          "orderProfileId": "se-570031",
+          "discountInfo": {
+            "unclaimedCouponMultiPromotions": {},
+            "orderCouponsMap": {},
+            "orderDiscount": 0.0,
+            "shippingDiscount": 0.0,
+            "orderImplicitDiscountList": [],
+            "unclaimedCouponsMap": {},
+            "claimedCouponMultiPromotions": {}
+          },
+          "trackingInfo": [],
+          "orderLocale": null,
+          "shippingAddress": {
+            "lastName": "DAVIS",
+            "country": "US",
+            "address3": null,
+            "address2": null,
+            "city": "Indian Orchard",
+            "prefix": null,
+            "address1": "203 Main Street",
+            "postalCode": "01151",
+            "companyName": null,
+            "jobTitle": null,
+            "regionName": "Massachusetts",
+            "county": null,
+            "suffix": null,
+            "firstName": "GRACE",
+            "phoneNumber": "9087654321",
+            "faxNumber": null,
+            "alias": null,
+            "middleName": null,
+            "state": "MA",
+            "countryName": "United States",
+            "email": "GRACE.DAVIS@test.com"
+          },
+          "billingAddress": {
+            "lastName": "DAVIS",
+            "country": "US",
+            "address3": null,
+            "address2": null,
+            "city": "Indian Orchard",
+            "prefix": null,
+            "address1": "Address Line 1",
+            "postalCode": "01151",
+            "companyName": null,
+            "jobTitle": null,
+            "county": null,
+            "suffix": null,
+            "firstName": "GRACE",
+            "phoneNumber": "12345678",
+            "faxNumber": null,
+            "alias": null,
+            "middleName": null,
+            "state": "MA",
+            "email": "GRACE.DAVIS@test.com"
+          },
+          "giftWithPurchaseOrderMarkers": []
+        }
+      };
+      this.fromJS(scheduledOrder);
+      $.Topic(pubsub.topicNames.SCHEDULED_ORDER_LOAD_SCUCCESS).publish();
+    };
+
+    // Return mock data for the Assets widget in "Layout Preview".
+    // The Assets widget does not have a view model for its page data,
+    // instead it works directly with the data returned by the endpoint;
+    // so monkey patch the ccRestClient instance's request function...
+    // if the request url is for Get Assets List then create mock assets
+    // JSON and invoke the REST success callback function with the mock
+    // data. For all other request urls simply invoke the orginal request
+    // function.
+    var orginal_ccRestClientRequest = ccRestClient.request;
+
+    ccRestClient.request = function(pUrl, pData,
+      pSuccessCallback, pErrorCallback,
+      pParam1, pParam2, pParam3, pParam4,
+      pBeforeSendCallback) {
+
+      // If the request url is for the get assets list endpoint
+      if (pUrl === ccConstants.ENDPOINT_GET_ACCOUNT_ASSETS) {
+        // create mock JSON...
+        var  mockJson = {
+          "count": 1,
+          "limit": 12,
+          "offset": 0,
+          "totalResults": 3,
+          "hasMore": false,
+          "items":[
+            {
+              "activationDate": "2017-06-14T17:59:16.718Z",
+              "dateModified": "2017-06-14T17:59:16.718Z",
+              "price": {
+                "value": 10,
+                "currency": "USD"
+              },
+              "resumeDate": null,
+              "recurringChargeFrequency": null,
+              "dateAdded": "2017-06-14T17:59:16.718Z",
+              "deactivationDate": "2018-06-14T17:59:16.718Z",
+              "serviceAccountId": "vision",
+              "discountAmount": 10,
+              "currency": {
+                "currencyCode":"USD"
+              },
+              "assetKey": "12345",
+              "rootAssetKey": "12345",
+              "parentAssetKey": null,
+              "asset": true,
+              "recurringCharge": 3,
+              "quantity": 1,
+              "usageNetAmount": 1,
+              "skuId": "part1",
+              "displayName": "Service 1",
+              "status":{
+                "displayValue" : "Active",
+                "id" : 1234,
+                "lookupCode" : "a"
+              },
+              "recurringChargeDuration": "12",
+              "suspendDate": null,
+              "usageUnitOfMeasure": "per day",
+              "serviceId": "serv1",
+              "attributes": "test 1, test 2, test 3",
+              "discountPercent": 10
+            },
+            {
+              "activationDate": "2017-06-14T17:59:16.718Z",
+              "dateModified": "2017-06-14T17:59:16.718Z",
+              "price": {
+                "value": 20,
+                "currency": "USD"
+              },
+              "resumeDate": null,
+              "recurringChargeFrequency":null,
+              "dateAdded":"2017-06-14T17:59:16.718Z",
+              "deactivationDate":"2018-06-14T17:59:16.718Z",
+              "serviceAccountId":"vision",
+              "discountAmount":5,
+              "currency":{
+                "currencyCode":"USD"
+              },
+              "assetKey": "23456",
+              "rootAssetKey": "23456",
+              "parentAssetKey": null,
+              "asset": true,
+              "recurringCharge":null,
+              "quantity":1,
+              "usageNetAmount":2,
+              "skuId":"part2",
+              "displayName":"Service 2",
+              "status":{
+                "displayValue" : "Active",
+                "id" : 1234,
+                "lookupCode" : "a"
+              },
+              "recurringChargeDuration":null,
+              "suspendDate":null,
+              "usageUnitOfMeasure":"per hour",
+              "serviceId":"serv2",
+              "attributes":"test 1, test 2, test 3",
+              "discountPercent":0
+            },
+            {
+              "activationDate":"2017-06-14T17:59:16.718Z",
+              "dateModified":"2017-06-14T17:59:16.718Z",
+              "price":{
+                "value":30,
+                "currency":"USD"
+              },
+              "resumeDate":null,
+              "recurringChargeFrequency":null,
+              "dateAdded":"2017-06-14T17:59:16.718Z",
+              "deactivationDate":"2018-06-14T17:59:16.718Z",
+              "serviceAccountId":"vision",
+              "discountAmount":null,
+              "currency":{
+                "currencyCode":"USD"
+              },
+              "assetKey": "34567",
+              "rootAssetKey": "34567",
+              "parentAssetKey": null,
+              "asset": true,
+              "recurringCharge":null,
+              "quantity":1,
+              "usageNetAmount":2,
+              "skuId":"part3",
+              "displayName":"Service 3",
+              "status":{
+                "displayValue" : "Active",
+                "id" : 1234,
+                "lookupCode" : "a"
+              },
+              "recurringChargeDuration":null,
+              "suspendDate":null,
+              "usageUnitOfMeasure":"per person",
+              "serviceId":"serv3",
+              "attributes":"test 1, test 2, test 3",
+              "discountPercent":2
+            }
+        ]};
+        // ...and invoke the success callback function
+        pSuccessCallback(mockJson);
+      }
+      else {
+        
+        // remember siteId
+        if (pUrl === ccConstants.ENDPOINT_SITES_GET_SITE) {
+          siteId = pParam1;
+        }
+        
+        if (pUrl === ccConstants.ENDPOINT_PRODUCTS_LIST_PRODUCTS || pUrl === ccConstants.ENDPOINT_COLLECTIONS_GET_COLLECTION
+              || pUrl === ccConstants.ENDPOINT_GET_PRODUCT_AVAILABILITY || pUrl === ccConstants.ENDPOINT_GET_PRODUCT_PRICES) {
+          if (pData === null) {
+            pData = {};
+          }
+          
+          var catalogId = "cloudCatalog";
+
+          // find catalogId for the site
+          if (siteList &amp;&amp; siteId) {
+            var site = $.grep(siteList, function(element) {
+              return element.id === siteId;
+            });
+            catalogId = site[0].defaultCatalog.repositoryId;
+          }
+          
+          pData["catalogId"] = catalogId;
+        }
+        
+        // for all other request urls simply call the orginal
+        // CCRestClient request function passing through
+        // all parameters
+        orginal_ccRestClientRequest.apply(this, arguments);
+      }
+    };
+
+    return LayoutContainer;
+  }
+);
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Index</a></h2><h3>Modules</h3><ul><li><a href="module-ccKoErrorWrapper.html">ccKoErrorWrapper</a></li><li><a href="module-ccKoExtensions.html">ccKoExtensions</a></li></ul><h3>Classes</h3><ul><li><a href="Address.html">Address</a></li><li><a href="CartViewModel.html">CartViewModel</a></li><li><a href="CCStoreConfiguration.html">CCStoreConfiguration</a></li><li><a href="CheckoutScheduledOrder.html">CheckoutScheduledOrder</a></li><li><a href="delegatedAdminContacts.html">delegatedAdminContacts</a></li><li><a href="DynamicProperty.html">DynamicProperty</a></li><li><a href="DynamicPropertyMetaContainer.html">DynamicPropertyMetaContainer</a></li><li><a href="EventDispatcher.html">EventDispatcher</a></li><li><a href="GiftCardViewModel.html">GiftCardViewModel</a></li><li><a href="GiftProductListingViewModel.html">GiftProductListingViewModel</a></li><li><a href="global.html#InfinityViewModel">InfinityViewModel</a></li><li><a href="IntegrationViewModel.html">IntegrationViewModel</a></li><li><a href="ko.bindingHandlers.background.html">background</a></li><li><a href="ko.bindingHandlers.carouselSwipe.html">carouselSwipe</a></li><li><a href="ko.bindingHandlers.ccDateTime.html">ccDateTime</a></li><li><a href="ko.bindingHandlers.ccForm.html">ccForm</a></li><li><a href="ko.bindingHandlers.ccLink.html">ccLink</a></li><li><a href="ko.bindingHandlers.ccValidation.html">ccValidation</a></li><li><a href="ko.bindingHandlers.checkbox.html">checkbox</a></li><li><a href="ko.bindingHandlers.chosen.html">chosen</a></li><li><a href="ko.bindingHandlers.contextResourcesNamespace.html">contextResourcesNamespace</a></li><li><a href="ko.bindingHandlers.currency.html">currency</a></li><li><a href="ko.bindingHandlers.datepicker.html">datepicker</a></li><li><a href="ko.bindingHandlers.datepopover.html">datepopover</a></li><li><a href="ko.bindingHandlers.draggable.html">draggable</a></li><li><a href="ko.bindingHandlers.droppable.html">droppable</a></li><li><a href="ko.bindingHandlers.fade.html">fade</a></li><li><a href="ko.bindingHandlers.hover.html">hover</a></li><li><a href="ko.bindingHandlers.image.html">image</a></li><li><a href="ko.bindingHandlers.imageSource.html">imageSource</a></li><li><a href="ko.bindingHandlers.imageZoom.html">imageZoom</a></li><li><a href="ko.bindingHandlers.localeText.html">localeText</a></li><li><a href="ko.bindingHandlers.makeAccess.html">makeAccess</a></li><li><a href="ko.bindingHandlers.modal.html">modal</a></li><li><a href="ko.bindingHandlers.modalTabbingContraint.html">modalTabbingContraint</a></li><li><a href="ko.bindingHandlers.onRender.html">onRender</a></li><li><a href="ko.bindingHandlers.popeditor.html">popeditor</a></li><li><a href="ko.bindingHandlers.popover.html">popover</a></li><li><a href="ko.bindingHandlers.productImageSource.html">productImageSource</a></li><li><a href="ko.bindingHandlers.productVariantImageSource.html">productVariantImageSource</a></li><li><a href="ko.bindingHandlers.propertyEditor.html">propertyEditor</a></li><li><a href="ko.bindingHandlers.radio.html">radio</a></li><li><a href="ko.bindingHandlers.richTextEditor.html">richTextEditor</a></li><li><a href="ko.bindingHandlers.scrollAffix.html">scrollAffix</a></li><li><a href="ko.bindingHandlers.select2.html">select2</a></li><li><a href="ko.bindingHandlers.select2Tags.html">select2Tags</a></li><li><a href="ko.bindingHandlers.selectable.html">selectable</a></li><li><a href="ko.bindingHandlers.slide.html">slide</a></li><li><a href="ko.bindingHandlers.slider.html">slider</a></li><li><a href="ko.bindingHandlers.spectrum.html">spectrum</a></li><li><a href="ko.bindingHandlers.textCheck.html">textCheck</a></li><li><a href="ko.bindingHandlers.timepicker.html">timepicker</a></li><li><a href="ko.bindingHandlers.triggerMessage.html">triggerMessage</a></li><li><a href="ko.bindingHandlers.validatableTarget.html">validatableTarget</a></li><li><a href="ko.bindingHandlers.validatableValue.html">validatableValue</a></li><li><a href="ko.bindingHandlers.widgetLocaleText.html">widgetLocaleText</a></li><li><a href="koValidation.alphaNumeric.html">alphaNumeric</a></li><li><a href="koValidation.alphaNumericNoSpaces.html">alphaNumericNoSpaces</a></li><li><a href="koValidation.alphaNumericNoSpacesNoDashesWithSeperators.html">alphaNumericNoSpacesNoDashesWithSeperators</a></li><li><a href="koValidation.alphaNumericNoSpacesWithSeperators.html">alphaNumericNoSpacesWithSeperators</a></li><li><a href="koValidation.alphaNumericWithSeperators.html">alphaNumericWithSeperators</a></li><li><a href="koValidation.bool.html">bool</a></li><li><a href="koValidation.creditcard.html">creditcard</a></li><li><a href="koValidation.cvv.html">cvv</a></li><li><a href="koValidation.endmonth.html">endmonth</a></li><li><a href="koValidation.endyear.html">endyear</a></li><li><a href="koValidation.importFileName.html">importFileName</a></li><li><a href="koValidation.laterDate.html">laterDate</a></li><li><a href="koValidation.match.html">match</a></li><li><a href="koValidation.mediaZipFileName.html">mediaZipFileName</a></li><li><a href="koValidation.number.html">number</a></li><li><a href="koValidation.observablePattern.html">observablePattern</a></li><li><a href="koValidation.password.html">password</a></li><li><a href="koValidation.price.html">price</a></li><li><a href="koValidation.propertyIdAlreadyInUse.html">propertyIdAlreadyInUse</a></li><li><a href="koValidation.propertyNameAlreadyInUse.html">propertyNameAlreadyInUse</a></li><li><a href="koValidation.restrictSlashCharacters.html">restrictSlashCharacters</a></li><li><a href="koValidation.startmonth.html">startmonth</a></li><li><a href="koValidation.startyear.html">startyear</a></li><li><a href="koValidation.uniqueTrimmed.html">uniqueTrimmed</a></li><li><a href="koValidation.uniqueTrimmedCaseInsensitive.html">uniqueTrimmedCaseInsensitive</a></li><li><a href="koValidation.url.html">url</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.addTemplate.html">addTemplate</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.agentBar.html">agentBar</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.ccDate.html">ccDate</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.ccNumber.html">ccNumber</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.ccResizeImage.html">ccResizeImage</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.disabled.html">disabled</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.element.html">element</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.embeddedAssistance.html">embeddedAssistance</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.fireChange.html">fireChange</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.inTabFlow.html">inTabFlow</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.noIndexMeta.html">noIndexMeta</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.previewBar.html">previewBar</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.setContextVariable.html">setContextVariable</a></li><li><a href="multiCartViewModel.html">multiCartViewModel</a></li><li><a href="NavStateViewModel.html">NavStateViewModel</a></li><li><a href="OrderDetailsViewModel.html">OrderDetailsViewModel</a></li><li><a href="OrderHistoryViewModel.html">OrderHistoryViewModel</a></li><li><a href="OrdersPendingApprovalViewModel.html">OrdersPendingApprovalViewModel</a></li><li><a href="OrderViewModel.html">OrderViewModel</a></li><li><a href="Organization.html">Organization</a></li><li><a href="ParentOrganisation.html">ParentOrganisation</a></li><li><a href="ProductListingSearchViewModel.html">ProductListingSearchViewModel</a></li><li><a href="ProductListingViewModel.html">ProductListingViewModel</a></li><li><a href="ProductTypes.html">ProductTypes</a></li><li><a href="ProductViewModel.html">ProductViewModel</a></li><li><a href="PromotionUpsellContainer.html">PromotionUpsellContainer</a></li><li><a href="PubSub.topicNames.html">topicNames</a></li><li><a href="PurchaseListListingViewModel.html">PurchaseListListingViewModel</a></li><li><a href="PurchaseListViewModel.html">PurchaseListViewModel</a></li><li><a href="RegistrationRequestSearchViewModel.html">RegistrationRequestSearchViewModel</a></li><li><a href="resetCVV.html">resetCVV</a></li><li><a href="resetGiftCardPin.html">resetGiftCardPin</a></li><li><a href="resetPaymentDetails.html">resetPaymentDetails</a></li><li><a href="ReturnItem.html">ReturnItem</a></li><li><a href="ReturnViewModel.html">ReturnViewModel</a></li><li><a href="scheduledOrderList.html">scheduledOrderList</a></li><li><a href="SearchRestClient.html">SearchRestClient</a></li><li><a href="ServerData.html">ServerData</a></li><li><a href="UserViewModel.html">UserViewModel</a></li><li><a href="WidgetViewModel.html">WidgetViewModel</a></li><li><a href="WishlistContentViewModel.html">WishlistContentViewModel</a></li></ul><h3>Namespaces</h3><ul><li><a href="ko.bindingHandlers.html">bindingHandlers</a></li><li><a href="ko.extenders.html">extenders</a></li><li><a href="koValidation.html">koValidation</a></li></ul><h3>Global</h3><ul><li><a href="global.html#addItemToPurchaseList">addItemToPurchaseList</a></li><li><a href="global.html#callWidgetMethodIfApplicable">callWidgetMethodIfApplicable</a></li><li><a href="global.html#CartViewModel#deleteParticularIncompleteOrdersDeletesanincompleteorderbyorderId">CartViewModel#deleteParticularIncompleteOrdersDeletes an incomplete order by orderId</a></li><li><a href="global.html#CCEETagProcessor">CCEETagProcessor</a></li><li><a href="global.html#doesSiteExist">doesSiteExist</a></li><li><a href="global.html#fetchSkuDetailsListError">fetchSkuDetailsListError</a></li><li><a href="global.html#fetchSkuDetailsListSuccess">fetchSkuDetailsListSuccess</a></li><li><a href="global.html#formatSiteText">formatSiteText</a></li><li><a href="global.html#handleInitiateEditSuccess">handleInitiateEditSuccess</a></li><li><a href="global.html#isModified">isModified</a></li><li><a href="global.html#isValidDeterminewhetherornotthepaymentdetailsobjectisvalidbasedonthevalidityofitscomponentparts.Thiswillnotcauseerrormessagestobedisplayedforanyobservablevaluesthatareunchangedandhaveneverreceivedfocusontherelatedformfield(s).">isValidDetermine whether or not the payment details object is validbased on the validity of its component parts. This will notcause error messages to be displayed for any observable valuesthat are unchanged and have never received focus on the related form field(s).</a></li><li><a href="global.html#justFocused">justFocused</a></li><li><a href="global.html#mapProperties">mapProperties</a></li><li><a href="global.html#MENU_CLOSE_TIMEOUT">MENU_CLOSE_TIMEOUT</a></li><li><a href="global.html#populateData">populateData</a></li><li><a href="global.html#populateProductData">populateProductData</a></li><li><a href="global.html#reset">reset</a></li><li><a href="global.html#resetModified">resetModified</a></li><li><a href="global.html#Resetsstylingforthelazilyloadedimage">Resets styling for the lazily loaded image</a></li><li><a href="global.html#Setsupstylingfortheimagetobelazilyloaded">Sets up styling for the image to be lazily loaded</a></li><li><a href="global.html#ShopperContextViewModel">ShopperContextViewModel</a></li><li><a href="global.html#thelistofpropertiestoignorewhilecopyingdynamicpropertiestoaddressobject">the list of properties to ignore while copying dynamic properties to address object</a></li><li><a href="global.html#validatePaymentDetailsForceallrelevantmemberobservablestoperformtheirvalidationnow&displaytheerrors(ifany)">validatePaymentDetailsForce all relevant member observables to perform theirvalidation now & display the errors (if any)</a></li><li><a href="global.html#WidgetQueue">WidgetQueue</a></li></ul>
+</nav>
+
+<br clear="both">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.0</a> on Wed Feb 26 2020 18:22:23 GMT+0530 (IST)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

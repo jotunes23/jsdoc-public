@@ -1,0 +1,1070 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: Dynamo/Client/Store/web/store.war/shared/js/pageLayout/order-edit.js</title>
+    
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+    
+    <h1 class="page-title">Source: Dynamo/Client/Store/web/store.war/shared/js/pageLayout/order-edit.js</h1>
+    
+    
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source"><code>/**
+ * @fileoverview Extends OrderViewModel for Agent.
+ */
+define(
+    // -------------------------------------------------------------------
+    // PACKAGE NAME
+    // -------------------------------------------------------------------
+    'pageLayout/order-edit',
+    ['knockout', 'pubsub', 'notifier', 'CCi18n', 'ccLogger', 'ccRestClient',
+        'ccConstants', 'jquery', 'navigation', 'spinner', 'viewModels/address',
+        'viewModels/paymentDetails', 'viewModels/giftCardViewModel',
+        'storageApi', 'viewModels/dynamicProperty' , 'ccStoreServerLogger',
+        'viewModels/cashViewModel', 'pageViewTracker', 'sfExceptionHandler', 
+        'ccStoreConfiguration', 'viewModels/paymentsViewModel', 'pageLayout/site', 'currencyHelper','pageLayout/order','viewModels/orderHelper'],
+    function(ko, pubsub, notifier, CCi18n, log, ccRestClient, ccConstants, $,
+        navigation, spinner, address, PaymentDetails, GiftCardViewModel, 
+        storageApi, DynamicProperty, StoreServerLogger, cashModel, pageViewTracker, 
+        ExceptionHandler, CCStoreConfiguration, paymentsViewModel, SiteViewModel, currencyHelper, OrderViewModel, OrderHelper) {
+         var ORDER_VIEW_MODEL_ID = "OrderViewModel";
+      //START Agent order edit functionality
+
+      /*
+       * It initiates edit order flow by creating clone order of original order.
+       * 
+       * @function OrderViewModel#initiateEditOrder
+       * @param {string} pOrderId Order Id to perform edit.
+       * @param {boolean} pContinueWithEdit Boolean indicating whether to continue with existing clone order or not.
+       */
+      OrderViewModel.prototype.initiateEditOrder = function(pOrderId, pContinueWithEdit) {
+        var self = this;
+        // Setup spinner.
+        //spinner.create(self.spinnerOptions);
+        //self.orderId(pDetails.orderId); // Edit Order ID.
+        /**
+         * Handler for initiate edit order  success call 
+         * @name handleInitiateEditSuccess
+         * @param {Object} - pResultData loads the edit order details
+       */
+        var handleInitiateEditOrderSuccess = function(pResultData) {
+          var order = pResultData.cloneOrder;
+          self.cloneOrderData(pResultData);
+          //Need to check backward compatibility
+          //Earlier we were making get order call
+          self.cart().originalOrderPrice(order.totalAmountAuthorized);
+          self.user().clonedOrderId(order.id);
+          self.isOrderEditable(true);
+
+          // Initializing the OrderQuantityMap for edit-order qty validations
+          self.cart().validOrderQuantityMap = pResultData.orderableQuantityMap;
+          var items = self.order().shoppingCart.items;
+          //Initiating the quantity map of stocks for edit-order qty validations.
+          for(var i = 0; i &lt; items.length ; i++){
+            var key = items[i].productId + ":" + items[i].catRefId;
+            self.cart().orderedQuantityMap[key] = {backOrderQuantity : items[i].backOrderQuantity, preOrderQuantity : items[i].preOrderQuantity, inStockQuantity : (items[i].quantity - items[i].backOrderQuantity - items[i].preOrderQuantity)};
+            if(items[i].childItems){
+              self.createOrderedQuantityMap(items[i].childItems);
+            }
+          }
+
+          // Load the order and stop using the cart items
+          self.cart().loadOrderForProfile(order, self.user);
+//        Now load the shipping address
+          var translateHelper =  {
+              translate: function(key, options) {
+                return CCi18n.t('ns.common:resources.' + key, options);
+              }
+          };
+          var shippingAddress = new address('cart-shipping-address', '', translateHelper, self.contextData.page.shippingCountriesPriceListGroup, self.contextData.page.defaultShippingCountry);
+          shippingAddress.copyFrom(order.shippingGroups[0].shippingAddress, self.contextData.page.shippingCountriesPriceListGroup);
+          shippingAddress.resetModified();
+          //Load shipping Address in Cart
+          $.Topic(pubsub.topicNames.CHECKOUT_SHIPPING_ADDRESS)
+          .publishWith(shippingAddress,[{message:"success"}]);
+
+          // Now fix the shipping method
+          var shippingAddressWithProductIDs = {};
+          shippingAddressWithProductIDs[ccConstants.SHIPPING_ADDRESS_FOR_METHODS] = self.shippingAddress();
+          shippingAddressWithProductIDs[ccConstants.PRODUCT_IDS_FOR_SHIPPING] = self.cart().getProductIdsForItemsInCart();
+
+          $.Topic(pubsub.topicNames.VERIFY_SHIPPING_METHODS).publishWith(shippingAddressWithProductIDs, [{
+            message: "success"
+          }]);
+
+          self.cart().shippingMethod(order.shippingMethod.value);
+          $.Topic(pubsub.topicNames.LOADED_ORDER_SHIPPING_ADDRESS).publish(order.shippingAddress);
+          self.loadedOrderShippingAddress = order.shippingAddress;
+          var amountRemaining = self.cart().getDerivedTotal(order.priceInfo.secondaryCurrencyTotal, order.priceInfo.total);
+          self.amountRemaining(amountRemaining);
+          $.Topic(pubsub.topicNames.CART_UPDATED_PENDING_PAYMENT).publish(self);
+          if(order.scheduledOrder &amp;&amp; order.scheduledOrder.length>0){
+            self.showSchedule(true);
+            if(self.schedule()){
+              self.schedule().fromJS(order.scheduledOrder[0]);
+            }
+          }
+          // Add the user order details
+          self.user().orderId(pResultData.originalOrderId);
+
+          //self.user().setLocalData('orderId');
+          if (!self.emailAddress() &amp;&amp; self.user().emailAddress()) {
+            self.emailAddress(self.user().emailAddress());
+          }
+
+          /*adding payment details*/
+          self.populatePaymentsViewModel(self.cloneOrderData().cloneOrder);
+          var initialDue = 0;
+
+          if(self.cloneOrderData().cloneOrder.totalAmountAuthorizedMap &amp;&amp; !($.isEmptyObject(self.cloneOrderData().cloneOrder.totalAmountAuthorizedMap))) {
+            var primaryCurrencyAmountAuthorized = self.cloneOrderData().cloneOrder.totalAmountAuthorizedMap[self.cart().currency.currencyCode];
+            var secondaryCurrencyAmountAuthorized = self.cloneOrderData().cloneOrder.totalAmountAuthorizedMap[self.cart().secondaryCurrency().currencyCode];
+            if(secondaryCurrencyAmountAuthorized) {
+              self.paymentsViewModel().totalAmountAuthorized(secondaryCurrencyAmountAuthorized);
+            }
+            else {
+              self.paymentsViewModel().totalAmountAuthorized(0.0);
+            }
+            if(primaryCurrencyAmountAuthorized) {
+              self.paymentsViewModel().primaryCurrencyTotalAmountAuthorized(primaryCurrencyAmountAuthorized);
+            }
+            else {
+              self.paymentsViewModel().primaryCurrencyTotalAmountAuthorized(0.0);
+            }
+            initialDue = self.cart().secondaryCurrencyTotal() - self.paymentsViewModel().totalAmountAuthorized();
+            initialDue = currencyHelper.handleFractionalDigits(initialDue,self.cart().secondaryCurrency().fractionalDigits);
+          } else {
+            var totalAmountAuthorized = self.cloneOrderData().cloneOrder.totalAmountAuthorized;
+            self.paymentsViewModel().totalAmountAuthorized(totalAmountAuthorized);
+            initialDue = self.cart().total() - totalAmountAuthorized;
+            initialDue = currencyHelper.handleFractionalDigits(initialDue,self.cart().currency.fractionalDigits);
+          }
+          if(initialDue >= 0) {
+            self.paymentsViewModel().paymentDue(initialDue);
+          } else {
+            self.paymentsViewModel().paymentDue(0);
+          }
+          if(self.pendingPaymentOrderHandler &amp;&amp; $.isFunction(self.pendingPaymentOrderHandler)){
+            self.pendingPaymentOrderHandler();
+          }
+        };
+
+        var handleInitiateAmendFailed = function(pResultData) {
+          // Show Growl Message.
+          var errorMessage = CCi18n.t('ns.common:resources.initiateAmendFailed');
+          notifier.sendError(ORDER_VIEW_MODEL_ID, errorMessage, true);
+        };
+
+        var data = {};
+        data[ccConstants.OP] = ccConstants.INITIATE_AMENDMENT_OP;
+        data[ccConstants.CONTINUE_WITH_EXISTING_EDIT] = pContinueWithEdit;
+
+        // Endpoint call.
+        ccRestClient.request(ccConstants.ENDPOINT_AMEND_ORDER, data,
+            handleInitiateEditOrderSuccess,
+            handleInitiateAmendFailed,
+           pOrderId);
+      };
+
+      //Method to create the quantity map whichc will store the back/ pre order and the in_stock quantity when order was placed.
+      OrderViewModel.prototype.createOrderedQuantityMap = function(childItems){
+        var self = this;
+        for(var i = 0; i &lt; childItems.length ; i++){
+          var key = childItems[i].productId + ":" + childItems[i].catRefId;
+          self.cart().orderedQuantityMap[key] = {backOrderQuantity : childItems[i].backOrderQuantity, preOrderQuantity : childItems[i].preOrderQuantity, inStockQuantity : (childItems[i].quantity - childItems[i].backOrderQuantity - childItems[i].preOrderQuantity)};
+          if(childItems[i].childItems){
+            self.createOrderedQuantityMap(childItems[i].childItems);
+          }
+        }
+
+      }
+
+      /*
+       * Authorize the clone order and reconcile it.
+       * 
+       * @function OrderViewModel#authorizeAndReconcileOrder
+       */
+      OrderViewModel.prototype.authorizeAndReconcileOrder = function() {
+        this.cart().isOrderSubmissionInProgress = true;
+        var self = this;
+        self.invokePaymentValidations();
+        var items = ko.observableArray([]);
+        var giftWithPurchaseOrderMarkers = self.cart().giftWithPurchaseOrderMarkers;
+        var cartItems = self.cart().items;
+        for (var i = 0; i &lt; cartItems().length; i++) {
+          var cartItem = OrderHelper.buildOrderItemModel(cartItems()[i]);
+          if (cartItems()[i].childItems) {
+            cartItem.childItems = cartItems()[i].childItems;
+            cartItem.configuratorId = cartItems()[i].configuratorId;
+          }
+          for(var j = 0; j &lt; self.cart().lineAttributes().length; j++) {
+            cartItem[self.cart().lineAttributes()[j].id()] = cartItems()[i][self.cart().lineAttributes()[j].id()];
+          }
+        items.push(cartItem);
+        }
+        var shoppingCart = OrderHelper.buildShoppingCartModel(items, self.cart().coupons(), self.cart().total());
+
+        var shippingGroups;
+        shippingGroups = self.cart().createShippingGroups();
+
+        var schedule = undefined;
+
+        var shippingAddress = undefined;
+        if (self.shippingAddress()) {
+          shippingAddress = self.shippingAddress().toJSON();
+        }
+       
+        var billingAddress = undefined;
+        if (self.billingAddress()) {
+          billingAddress = self.billingAddress().toJSON();
+        }
+        
+        //TODO Need to do anonymous user handling here
+        var isAnonymousCheckout = false;
+        /*
+        if (self.user().loggedIn()) {
+          isAnonymousCheckout = false;
+          if (!self.emailAddress() &amp;&amp; self.user().emailAddress()) {
+            self.emailAddress(self.user().emailAddress());
+          }
+        }
+        */
+
+        if (self.emailAddress()) {
+          var emailAddress = self.emailAddress().toString();
+
+          if (shippingGroups) {
+            // update the email address on shipping address of each shipping group
+            shippingGroups.forEach(function(shippingGroup){
+              shippingGroup.shippingAddress.email = emailAddress;
+            });
+          } else if (shippingAddress) {
+            shippingAddress.email = emailAddress;
+          }
+        }
+
+        var appliedPromotions = [];
+        for (var i = 0; i &lt; self.cart().orderDiscountDescList().length; i++) {
+          appliedPromotions
+              .push(self.cart().orderDiscountDescList()[i].promotionId);
+        }
+
+        for (var couponIndex = 0; couponIndex &lt; self.cart().claimedCouponMultiPromotions().length; couponIndex++) {
+          for(var promoIndex = 0; promoIndex &lt; self.cart().claimedCouponMultiPromotions()[couponIndex].promotions().length; promoIndex++) {
+            appliedPromotions
+              .push(self.cart().claimedCouponMultiPromotions()[couponIndex].promotions()[promoIndex].promotionId());
+          }
+        }
+        
+        var payments = [];
+        if(!self.isPayLater()) {
+          // If the selected currency is of the type loyaltyPoints, only then add the point-based payments
+          if (ccConstants.LOYALTY_POINTS_PAYMENT_TYPE == self.cart().currency.currencyType) {
+            if (self.paymentsViewModel().isLoyaltyEnabled()) {
+              var tempPayments = self.paymentsViewModel().preparePaymentsRequest(self.paymentsViewModel().pendingPayments());
+              // TODO: Revisit this condition when split shipping is supported with loyalty.
+              for (var i=0; i&lt;tempPayments.length; i++) {
+                if (tempPayments[i].paymentMethodType == ccConstants.LOYALTY_POINTS_PAYMENT_TYPE) {
+                  // Here, though we have supported split payments with loyalty, the loyalty payment can't be splitted again.
+                  // Hence we can associate the primaryCurrencyTotal or the orderTotal to the loyalty payments, if they
+                  // are not already present.
+                  if (tempPayments[i].amount &amp;&amp; null == tempPayments[i].amount) {
+	                //TODO  Here we should be putting delta amount
+                    var total = self.cart().getDerivedTotal(self.cart().primaryCurrencyTotal(), self.cart().total());
+                    tempPayments[i].amount = total;
+                  }
+                  if (tempPayments[i].billingAddress &amp;&amp; null == tempPayments[i].billingAddress) {
+                    tempPayments[i].billingAddress = billingAddress;
+                  }
+                  payments.push(tempPayments[i]);
+                }
+              }
+            }
+          }
+
+          if (self.isSplitPayment()) {
+            var tempPayments = self.paymentsViewModel().preparePaymentsRequest(self.paymentsViewModel().pendingPayments());
+            for (var i=0; i&lt;tempPayments.length; i++) {
+              if (tempPayments[i].paymentMethodType == ccConstants.CARD_PAYMENT_TYPE &amp;&amp; self.isCardPaymentClientSide) {
+                payments.push({type:"card", amount:tempPayments[i].amount, seqNum:tempPayments[i].seqNum});
+              } else if (tempPayments[i].paymentMethodType == ccConstants.LOYALTY_POINTS_PAYMENT_TYPE) {
+                // skip adding loyalty payment to payments array as it is already added.
+                continue;
+              } else {
+                payments.push(tempPayments[i]);
+              }
+            }
+          } else {
+            if (self.cashModel().isPayingByCash()) {
+              var payment = {};
+              payment.type = ccConstants.CASH_PAYMENT_TYPE;
+              if(self.cashModel().customProperties &amp;&amp; (Object.keys(self.cashModel().customProperties).length - 1) > 0) {
+                payment.customProperties = ko.mapping.toJS(self.cashModel().customProperties);
+              }
+              payments.push(payment);
+            } else {        
+              //Gift Cards
+              if (self.giftCards()) {
+                for ( var i = 0; i &lt; self.giftCards().length; i++) {
+                  var payment = {};
+                  payment.type = ccConstants.GIFT_CARD_PAYMENT_TYPE;
+                  payment.giftCardNumber = self.giftCards()[i].giftCardNumber();
+                  payment.giftCardPin = self.giftCards()[i].giftCardPin();
+                  if (!self.giftCards()[i].isAmountRemaining() || self.isPaypalVerified()) {
+                    payment.amount = self.giftCards()[i].amountUsed();
+                  }
+                  payment.paymentGroupId = self.giftCards()[i].paymentGroupId;
+                  if(self.giftCards()[i].customProperties &amp;&amp; (Object.keys(self.giftCards()[i].customProperties).length - 1) > 0) {
+                    payment.customProperties = ko.mapping.toJS(self.giftCards()[i].customProperties);
+                  }
+                  payments.push(payment);
+                }
+              }
+
+              if (self.payments().length > 0) {
+                // Add any generic payments.
+                ko.utils.arrayForEach(self.payments(), function (payment) {
+                  payments.push(payment);
+                });
+              }
+              // These entries are for Paypal and credit card respectively. Update here
+              // for other payment scenarios.
+              else if (self.isPaypalVerified() || (self.amountRemaining &amp;&amp; self.amountRemaining() != 0)) {
+                if (self.paymentGateway() &amp;&amp; self.paymentGateway().type) {
+                  payments.push(self.paymentGateway());
+                  self.createSpinner();
+                } else if(self.isInvoicePayment()) {
+                  payments.push({type:ccConstants.INVOICE_PAYMENT_TYPE, PONumber:self.poNumber()});
+                } else if (self.paymentDetails &amp;&amp; self.paymentDetails() &amp;&amp; self.paymentDetails().isModified()) {
+                  var payment = {};
+                  if (!self.isCardPaymentClientSide) {
+                    payment = OrderHelper.buildCreditCardPaymentDetailsModel(self.paymentDetails());
+                    if(self.paymentDetails().customProperties &amp;&amp; (Object.keys(self.paymentDetails().customProperties).length - 1) > 0) {
+                      payment.customProperties = ko.mapping.toJS(self.paymentDetails().customProperties);
+                    }
+                  }
+                  payment.type = ccConstants.CARD_PAYMENT_TYPE;
+                  payments.push(payment);
+                }
+              }
+            }
+          }
+        }
+
+        var op = '';
+        // Clear any previous errors before
+        // attempting a new order submission
+        notifier.clearError(ORDER_VIEW_MODEL_ID);
+
+        // check if OrderViewModel has order id and the user is logged-in to
+        // reuse the order to update and submit with changes.
+        if ((!self.paymentGateway() || self.paymentGateway().type != ccConstants.PAYPAL_CHECKOUT_TYPE) &amp;&amp;
+            !self.hasPaymentType(ccConstants.PAYPAL_CHECKOUT_TYPE) &amp;&amp; 
+            !self.hasPaymentType(ccConstants.GENERIC_PAYMENT_TYPE) &amp;&amp;
+            ccRestClient.profileType != ccConstants.PROFILE_TYPE_AGENT) {
+          self.id('');
+        }
+        if (self.cloneOrderData().originalOrderId) {
+          self.id(self.cloneOrderData().originalOrderId);
+        }
+        //TODO what is visitor id?
+        var visitorId = pageViewTracker.getVisitorId();
+        var visitId = pageViewTracker.getVisitId();
+        var newOrder = ko.observable(OrderHelper.buildOrderModel(self.id(), shoppingCart,
+            appliedPromotions, self.selectedShippingOption(), schedule,
+            shippingAddress, billingAddress, visitorId, visitId,
+            isAnonymousCheckout, self.user().id(), payments, op, giftWithPurchaseOrderMarkers, shippingGroups, self.cart().combineLineItems));
+
+        var url;
+        newOrder().op = ccConstants.PRE_AUTORIZE_ORDER_AMENDMENT_OP;
+        var totalAmountAuthorized = self.paymentsViewModel().totalAmountAuthorized();
+        var amountRemaining = self.cart().total() - totalAmountAuthorized;
+        if(amountRemaining >= 0) {
+          newOrder()[ccConstants.AMOUNT_REMAINING] = amountRemaining;
+        }
+
+        var url = "";
+        var requestPayload = "";
+        var clonedOrderId = "";
+        clonedOrderId = self.user().clonedOrderId()
+
+        url = ccConstants.ENDPOINT_AMEND_ORDER;
+        requestPayload = self.addDynamicProperties(JSON.parse(ko.toJSON(newOrder)));
+
+        ccRestClient.request(url, requestPayload,
+            // success callback
+            function(data) {
+          var paymentGroups = data.paymentGroups;
+          data.state = data.stateString;
+          if(self.createOrderSuccessHandler &amp;&amp; $.isFunction(self.createOrderSuccessHandler)) {
+            // Call Split Payments callback success function
+            self.id(data.id);
+            self.order(data);
+            data.orderProfileId = data.orderProfileId ? data.orderProfileId : data.profileId
+                self.orderProfileId(data.orderProfileId);
+            if(data.stateString == "PENDING_PAYMENT") {
+              var payLoad = {}
+              payLoad[ccConstants.INCLUDE_RESULT] = ccConstants.INCLUDE_RESULT_FULL;
+              ccRestClient.request(ccConstants.ENDPOINT_GET_ORDER, payLoad,
+                  function(pResult) {self.order(pResult);
+                  data.priceListGroup =  pResult.priceListGroup;
+                  data.shoppingCart = pResult.shoppingCart;
+                  self.createOrderSuccessHandler(data);},
+                  function(pResult) {
+                    var errorMessage = data.message;
+                    notifier.sendError(ORDER_VIEW_MODEL_ID, errorMessage, true);
+                  }, self.cloneOrderData().originalOrderId);
+              self.clearCloneOrderData();
+            } else {
+              self.createOrderSuccessHandler(data);
+            }
+          } else {
+            data.orderProfileId = data.orderProfileId ? data.orderProfileId : data.profileId
+                self.postOrderCreateOrUpdateSuccess(data);
+          }
+        },
+        // error callback
+        function(data) {
+          var errorMessage = data.message;
+          notifier.sendError(ORDER_VIEW_MODEL_ID, errorMessage, true);
+          self.postOrderCreateOrUpdateFailure(data);
+          if(self.createOrderFailureHandler &amp;&amp; $.isFunction(self.createOrderFailureHandler)) {
+            self.createOrderFailureHandler(data);
+          }
+        }, clonedOrderId);
+
+      };
+
+      /*
+       * Price the order and reconcile it.
+       * 
+       * @function OrderViewModel#priceAndReconcileOrder
+       */
+      OrderViewModel.prototype.priceAndReconcileOrder = function() {
+        var self = this;
+        self.reconcileOrder();
+        //TODO first pricing and reconcile(require for dynamic property and iin relate flow )
+        /*
+      var data = self.buildOrderData();
+      data[ccConstants.OP] = ccConstants.PRICE_ORDER_AMENDMENT_OP;
+
+      ccRestClient.request(ccConstants.ENDPOINT_AMEND_ORDER, data,
+          self.reconcileOrder.bind(self),
+          self.submitOrCompleteOrderFailure.bind(self), self.cart().user().clonedOrderId());
+         */
+      };
+
+      /**
+       * This method reconciles the clone order and original order
+       * 
+       * @function OrderViewModel#reconcileOrder
+       */
+      OrderViewModel.prototype.reconcileOrder = function (){
+        var self = this;
+        var data = {};
+        var originalOrderId = self.cloneOrderData().originalOrderId;
+        ccRestClient.request(ccConstants.ENDPOINT_SUBMIT_ORDER_AMENDMENT, data, 
+            function(pData) {
+              var self = this;
+              var messageDetails = {};
+              $.Topic(pubsub.topicNames.ORDER_COMPLETED).publish(messageDetails);
+              // Redirecting to order confirmation page
+              $.Topic(pubsub.topicNames.ORDER_SUBMISSION_SUCCESS).publish([ {
+                message : "success",
+                id : originalOrderId,
+                uuid : ""
+              } ]);
+            }, 
+            function(pData) {
+              var errorMessage = CCi18n.t('ns.common:resources.editOrderErrorHeader');
+              notifier.sendError(ORDER_VIEW_MODEL_ID, errorMessage, true);
+            }, 
+            originalOrderId);
+      };
+
+      /*
+       * Method to handle page ready event.
+       * 
+       * @function OrderViewModel#handlePageReady
+       * @param {string} pData data published on page ready topic.
+       */
+      OrderViewModel.prototype.handlePageReady = function(pData) {
+        var self = this;
+        if(ccRestClient.profileType == ccConstants.PROFILE_TYPE_AGENT &amp;&amp; self.contextManager) {
+          var orderId = "";
+          if (!self.cart().currentOrderId()) {
+            if ((navigation.getQueryString() &amp;&amp; (navigation.getQueryString().indexOf("pendingPaymentOrder=true") > -1))
+              || (this.user().contextData.page &amp;&amp; this.user().contextData.page.pageId.indexOf("agentMultiShipCheckout") > -1)) {
+              self.cart().currentOrderId(self.contextManager.getInstance().getProperty("orderId"));
+            }
+          }
+          var isEditOrder = self.contextManager.getInstance().getProperty("isEditOrder");
+          if((isEditOrder &amp;&amp; pData.pageId == ccConstants.PAGE_TYPE_AGENT_CHECKOUT) || (isEditOrder &amp;&amp; pData.pageId === ccConstants.PAGE_TYPE_AGENT_MULTISHIP_CHECKOUT)
+                  || (isEditOrder &amp;&amp; pData.pageId === ccConstants.PAGE_ID_AGENT_MULTISHIP_EDIT)) {
+            var isContinueWithEdit = self.contextManager.getInstance().getProperty(ccConstants.AGENT_ORDERS_CONTINUE_EDIT);
+            var originalOrderId = self.contextManager.getInstance().getProperty("originalOrderId");
+            var cloneOrderData = self.contextManager.getInstance().getProperty("cloneOrderData");
+            var originalOrderData = self.contextManager.getInstance().getProperty("originalOrderData");
+            self.order(originalOrderData);
+            if(cloneOrderData) {
+              //self.handleInitiateEditOrderSuccess(cloneOrderData);
+              self.initiateEditOrder(originalOrderId, true);
+              self.cloneOrderData(cloneOrderData);
+              self.user().clonedOrderId(cloneOrderData.cloneOrder.id);
+            } else {
+              self.initiateEditOrder(originalOrderId, isContinueWithEdit);
+            }
+          } else {
+            self.loadOrderForSubmit(pData);
+          }
+        } else {
+          self.loadOrderForSubmit(pData);
+        }
+      };
+      
+      /*
+       * Method to clear clone order related data.
+       * 
+       * @function OrderViewModel#clearCloneOrderData
+       */
+      OrderViewModel.prototype.clearCloneOrderData = function() {
+        var self = this;
+        self.cloneOrderData("");
+        self.user().clonedOrderId("");
+        self.cart().orderedQuantityMap = {};
+        self.contextManager.getInstance().removeProperty(ccConstants.AGENT_ORDERS_CONTINUE_EDIT);
+        self.contextManager.getInstance().removeProperty("originalOrderId");
+        self.contextManager.getInstance().removeProperty("isEditOrder");
+        self.contextManager.getInstance().removeProperty("cloneOrderData");
+        self.contextManager.getInstance().removeProperty("originalOrderData");
+      };
+
+      /*
+       * This method is used to populate variables like totalAmountAuthorized, completedPayments array etc
+       * in paymentsContainer.
+       * 
+       * @function OrderViewModel#populatePaymentsViewModel
+       * 
+       * @param {Object} pData.
+       */
+      OrderViewModel.prototype.populatePaymentsViewModel = function(pData) {
+        var self = this;
+       var paymentsViewModel = self.paymentsViewModel();
+        var authorizedAmount = 0;
+        var loyaltyAuthorizedAmount = 0;
+        var completedPayments = [];
+        var completedLoyaltyPayments = [];
+        var isChargeShippingAndTaxInSecondaryCurrency = false;
+        var currencySymbol = self.cart().currency.symbol;
+
+        if (self.cart().payShippingInSecondaryCurrency() || self.cart().payTaxInSecondaryCurrency()) {
+          isChargeShippingAndTaxInSecondaryCurrency = true;
+          var secondaryCurrency = self.cart().secondaryCurrency();
+          currencySymbol =  secondaryCurrency &amp;&amp; secondaryCurrency.symbol ? secondaryCurrency.symbol : pData.priceListGroup.currency.symbol;
+        }
+
+        for (var i=0; i&lt;pData.paymentGroups.length; i++) {
+          var paymentGroup = pData.paymentGroups[i];
+          var isVoidInitiated = self.paymentsViewModel().isVoidInitiatedForPaymentGroup(paymentGroup);
+          if(self.paymentsViewModel().isPaymentAuthorized(paymentGroup.paymentStateString) &amp;&amp; !isVoidInitiated) {
+
+            if (paymentGroup.paymentType === ccConstants.LOYALTY_POINTS_PAYMENT_TYPE) {
+              if(isChargeShippingAndTaxInSecondaryCurrency) {
+                loyaltyAuthorizedAmount = parseFloat(loyaltyAuthorizedAmount) + parseFloat(paymentGroup.amount);
+              } else {
+                authorizedAmount = parseFloat(authorizedAmount) + parseFloat(paymentGroup.amount);
+              }
+              completedLoyaltyPayments.push(self.generateCompletedPaymentsText(paymentGroup, pData.priceListGroup.currency.symbol));
+            } else {
+              authorizedAmount = parseFloat(authorizedAmount) + parseFloat(paymentGroup.amount);
+              //create the payment object to push
+              var currentPaymentGroupObject = paymentsViewModel.createPaymentGroup(paymentGroup.type || paymentGroup.cardType);
+              currentPaymentGroupObject.amount(paymentGroup.amount.toString());
+              currentPaymentGroupObject.paymentGroupId = paymentGroup.paymentGroupId;
+              if(paymentGroup.originalPaymentGroupId) {
+                currentPaymentGroupObject.originalPaymentGroupId = paymentGroup.originalPaymentGroupId;
+              }
+              currentPaymentGroupObject.amountAuthorized = paymentGroup.amountAuthorized;
+              // set the masked number for various payment groups
+              if(paymentGroup.type == "card") {
+                currentPaymentGroupObject.maskedNumber(paymentGroup.cardNumber);
+              }
+              else if(paymentGroup.cardType) {
+                currentPaymentGroupObject.maskedNumber(paymentGroup.maskedCardNumber);
+              }
+              else if(paymentGroup.type == ccConstants.INVOICE_PAYMENT_TYPE) {
+                currentPaymentGroupObject.PONumber(paymentGroup.PONumber);
+              }
+              else if(paymentGroup.type == ccConstants.STORE_CREDIT_PAYMENT_TYPE) {
+                currentPaymentGroupObject.storeCreditNumber(paymentGroup.storeCreditNumber);
+              }
+              completedPayments.push(currentPaymentGroupObject);
+            }
+          }
+        }
+        var dueAmount = 0;
+        var loyaltyDueAmount = 0;
+        if(isChargeShippingAndTaxInSecondaryCurrency){
+          dueAmount = parseFloat(pData.priceInfo.secondaryCurrencyTotal) - parseFloat(authorizedAmount);
+          loyaltyDueAmount = parseFloat(pData.priceInfo.primaryCurrencyTotal) - parseFloat(loyaltyAuthorizedAmount);
+        } else {
+          dueAmount = parseFloat(pData.priceInfo.total) - parseFloat(authorizedAmount);
+        }
+        // Update Payments View Model
+
+        // Reset the view model before adding the completed payments
+        paymentsViewModel.resetPaymentsContainer();
+        paymentsViewModel.paymentDue(dueAmount);
+        paymentsViewModel.totalAmountAuthorized(authorizedAmount);
+        paymentsViewModel.loyaltyPaymentDue(loyaltyDueAmount);
+        paymentsViewModel.completedPayments(completedPayments);
+        paymentsViewModel.historicalCompletedLoyaltyPayments(completedLoyaltyPayments);
+        self.user().isHistoricalOrder = true;
+      };
+
+      /*
+       * @function OrderViewModel#generateCompletedPaymentsText
+       * 
+       * @param {Object} pPaymentData payment data.
+       * @param {string} pCurrencySymbol currency symbol.
+       */
+      OrderViewModel.prototype.generateCompletedPaymentsText = function(pPaymentData, pCurrencySymbol) {
+        var self = this;
+        var type;
+        var maskedNumber;
+        if (pPaymentData.cardType == ccConstants.GIFT_CARD_PAYMENT_TYPE) {
+          type = ccConstants.GIFT_CARD_TEXT;
+          maskedNumber = pPaymentData.maskedCardNumber;
+        } else if (pPaymentData.type == ccConstants.CASH_PAYMENT_TYPE) {
+          type = ccConstants.CASH_PAYMENT_TYPE;
+          maskedNumber = "";
+        } else if(pPaymentData.type == ccConstants.INVOICE_PAYMENT_TYPE) {
+          type = ccConstants.INVOICE_PAYMENT_TYPE;
+          maskedNumber = pPaymentData.PONumber;
+        } else if(pPaymentData.paymentType === ccConstants.LOYALTY_POINTS_PAYMENT_TYPE) {
+          type = ccConstants.LOYALTY_POINTS_PAYMENT_TYPE;
+        }
+        else {
+            type = ccConstants.CREDIT_CARD_TEXT;
+          maskedNumber = pPaymentData.cardNumber;
+        }
+
+        return (pCurrencySymbol + pPaymentData.amount + CCi18n.t('ns.common:resources.toBeChargedPaymentText', {type: type, number: maskedNumber}));
+      };
+
+      /* Method to build order data payload. 
+       * @function OrderViewModel#buildOrderData
+       */
+      OrderViewModel.prototype.buildOrderData = function(){
+        this.cart().isOrderSubmissionInProgress = true;
+        var self = this;
+        self.invokePaymentValidations();
+        var items = ko.observableArray([]);
+        var giftWithPurchaseOrderMarkers = self.cart().giftWithPurchaseOrderMarkers;
+        var cartItems = self.cart().items;
+        for (var i = 0; i &lt; cartItems().length; i++) {
+          var cartItem = OrderHelper.buildOrderItemModel(cartItems()[i]);
+          if (cartItems()[i].childItems) {
+            cartItem.childItems = cartItems()[i].childItems;
+            cartItem.configuratorId = cartItems()[i].configuratorId;
+          }
+          for(var j = 0; j &lt; self.cart().lineAttributes().length; j++) {
+            cartItem[self.cart().lineAttributes()[j].id()] = cartItems()[i][self.cart().lineAttributes()[j].id()];
+          }
+        items.push(cartItem);
+        }
+
+        var shoppingCart = OrderHelper.buildShoppingCartModel(items, self.cart().coupons(), self.cart().total());
+
+        var shippingGroups;
+        shippingGroups = self.cart().createShippingGroups();
+
+        var schedule = undefined;
+
+        var shippingAddress = undefined;
+        if (self.shippingAddress()) {
+          shippingAddress = self.shippingAddress().toJSON();
+        }
+
+        var billingAddress = undefined;
+        if (self.billingAddress()) {
+          billingAddress = self.billingAddress().toJSON();
+        }
+
+        //TODO Need to do anonymous user handling here
+        var isAnonymousCheckout = false;
+        /*
+        if (self.user().loggedIn()) {
+          isAnonymousCheckout = false;
+          if (!self.emailAddress() &amp;&amp; self.user().emailAddress()) {
+            self.emailAddress(self.user().emailAddress());
+          }
+        }
+        */
+
+        if (self.emailAddress()) {
+          var emailAddress = self.emailAddress().toString();
+
+          if (shippingGroups) {
+            // update the email address on shipping address of each shipping group
+            shippingGroups.forEach(function(shippingGroup){
+              shippingGroup.shippingAddress.email = emailAddress;
+            });
+          } else if (shippingAddress) {
+            shippingAddress.email = emailAddress;
+          }
+        }
+
+        var appliedPromotions = [];
+        for (var i = 0; i &lt; self.cart().orderDiscountDescList().length; i++) {
+          appliedPromotions
+              .push(self.cart().orderDiscountDescList()[i].promotionId);
+        }
+
+        for (var couponIndex = 0; couponIndex &lt; self.cart().claimedCouponMultiPromotions().length; couponIndex++) {
+          for(var promoIndex = 0; promoIndex &lt; self.cart().claimedCouponMultiPromotions()[couponIndex].promotions().length; promoIndex++) {
+            appliedPromotions
+              .push(self.cart().claimedCouponMultiPromotions()[couponIndex].promotions()[promoIndex].promotionId());
+          }
+        }
+
+        var payments = [];
+        if(!self.isPayLater()) {
+          // If the selected currency is of the type loyaltyPoints, only then add the point-based payments
+          if (ccConstants.LOYALTY_POINTS_PAYMENT_TYPE == self.cart().currency.currencyType) {
+            if (self.paymentsViewModel().isLoyaltyEnabled()) {
+              var tempPayments = self.paymentsViewModel().preparePaymentsRequest(self.paymentsViewModel().pendingPayments());
+              // TODO: Revisit this condition when split shipping is supported with loyalty.
+              for (var i=0; i&lt;tempPayments.length; i++) {
+                if (tempPayments[i].paymentMethodType == ccConstants.LOYALTY_POINTS_PAYMENT_TYPE) {
+                  // Here, though we have supported split payments with loyalty, the loyalty payment can't be splitted again.
+                  // Hence we can associate the primaryCurrencyTotal or the orderTotal to the loyalty payments, if they
+                  // are not already present.
+                  if (tempPayments[i].amount &amp;&amp; null == tempPayments[i].amount) {
+                  //TODO  Here we should be putting delta amount
+                    var total = self.cart().getDerivedTotal(self.cart().primaryCurrencyTotal(), self.cart().total());
+                    tempPayments[i].amount = total;
+                  }
+                  if (tempPayments[i].billingAddress &amp;&amp; null == tempPayments[i].billingAddress) {
+                    tempPayments[i].billingAddress = billingAddress;
+                  }
+                  payments.push(tempPayments[i]);
+                }
+              }
+            }
+          }
+
+          if (self.isSplitPayment()) {
+            var tempPayments = self.paymentsViewModel().preparePaymentsRequest(self.paymentsViewModel().pendingPayments());
+            for (var i=0; i&lt;tempPayments.length; i++) {
+              if (tempPayments[i].paymentMethodType == ccConstants.CARD_PAYMENT_TYPE &amp;&amp; self.isCardPaymentClientSide) {
+                payments.push({type:"card", amount:tempPayments[i].amount, seqNum:tempPayments[i].seqNum});
+              } else if (tempPayments[i].paymentMethodType == ccConstants.LOYALTY_POINTS_PAYMENT_TYPE) {
+                // skip adding loyalty payment to payments array as it is already added.
+                continue;
+              } else {
+                payments.push(tempPayments[i]);
+              }
+            }
+          } else {
+            if (self.cashModel().isPayingByCash()) {
+              var payment = {};
+              payment.type = ccConstants.CASH_PAYMENT_TYPE;
+              if(self.cashModel().customProperties &amp;&amp; (Object.keys(self.cashModel().customProperties).length - 1) > 0) {
+                payment.customProperties = ko.mapping.toJS(self.cashModel().customProperties);
+              }
+              payments.push(payment);
+            } else {
+              //Gift Cards
+              if (self.giftCards()) {
+                for ( var i = 0; i &lt; self.giftCards().length; i++) {
+                  var payment = {};
+                  payment.type = ccConstants.GIFT_CARD_PAYMENT_TYPE;
+                  payment.giftCardNumber = self.giftCards()[i].giftCardNumber();
+                  payment.giftCardPin = self.giftCards()[i].giftCardPin();
+                  if (!self.giftCards()[i].isAmountRemaining() || self.isPaypalVerified()) {
+                    payment.amount = self.giftCards()[i].amountUsed();
+                  }
+                  payment.paymentGroupId = self.giftCards()[i].paymentGroupId;
+                  if(self.giftCards()[i].customProperties &amp;&amp; (Object.keys(self.giftCards()[i].customProperties).length - 1) > 0) {
+                    payment.customProperties = ko.mapping.toJS(self.giftCards()[i].customProperties);
+                  }
+                  payments.push(payment);
+                }
+              }
+
+              if (self.payments().length > 0) {
+                // Add any generic payments.
+                ko.utils.arrayForEach(self.payments(), function (payment) {
+                  payments.push(payment);
+                });
+              }
+              // These entries are for Paypal and credit card respectively. Update here
+              // for other payment scenarios.
+              else if (self.isPaypalVerified() || (self.amountRemaining &amp;&amp; self.amountRemaining() != 0)) {
+                if (self.paymentGateway() &amp;&amp; self.paymentGateway().type) {
+                  payments.push(self.paymentGateway());
+                  self.createSpinner();
+                } else if(self.isInvoicePayment()) {
+                  payments.push({type:ccConstants.INVOICE_PAYMENT_TYPE, PONumber:self.poNumber()});
+                } else if (self.paymentDetails &amp;&amp; self.paymentDetails() &amp;&amp; self.paymentDetails().isModified()) {
+                  var payment = {};
+                  if (!self.isCardPaymentClientSide) {
+                    payment = OrderHelper.buildCreditCardPaymentDetailsModel(self.paymentDetails());
+                    if(self.paymentDetails().customProperties &amp;&amp; (Object.keys(self.paymentDetails().customProperties).length - 1) > 0) {
+                      payment.customProperties = ko.mapping.toJS(self.paymentDetails().customProperties);
+                    }
+                  }
+                  payment.type = ccConstants.CARD_PAYMENT_TYPE;
+                  payments.push(payment);
+                }
+              }
+            }
+          }
+        }
+
+        var op = '';
+        // Clear any previous errors before
+        // attempting a new order submission
+        notifier.clearError(ORDER_VIEW_MODEL_ID);
+
+        // check if OrderViewModel has order id and the user is logged-in to
+        // reuse the order to update and submit with changes.
+        if ((!self.paymentGateway() || self.paymentGateway().type != ccConstants.PAYPAL_CHECKOUT_TYPE) &amp;&amp;
+            !self.hasPaymentType(ccConstants.PAYPAL_CHECKOUT_TYPE) &amp;&amp;
+            !self.hasPaymentType(ccConstants.GENERIC_PAYMENT_TYPE) &amp;&amp;
+            ccRestClient.profileType != ccConstants.PROFILE_TYPE_AGENT) {
+          self.id('');
+        }
+        if (self.cloneOrderData().originalOrderId) {
+          self.id(self.cloneOrderData().originalOrderId);
+        }
+        //TODO what is visitor id?
+        var visitorId = pageViewTracker.getVisitorId();
+        var visitId = pageViewTracker.getVisitId();
+        var newOrder = ko.observable(OrderHelper.buildOrderModel(self.id(), shoppingCart,
+            appliedPromotions, self.selectedShippingOption(), schedule,
+            shippingAddress, billingAddress, visitorId, visitId,
+            isAnonymousCheckout, self.user().id(), payments, op, giftWithPurchaseOrderMarkers, shippingGroups, self.cart().combineLineItems));
+       return newOrder;
+      };
+
+     /*
+      * This method will perform below sequence of operations to handle order approval in edit flow.
+      * 1)Perform copy of clone order.
+      * 2)Remove Clone Order.
+      * 3)Remove Original order.
+      * 4)Load newly generated copy order(step 1) in checkout page.
+      * 
+      * @function OrderViewModel#handleAmendmentForOrderApproval
+      * @param {string} pClonedOrderId Clone order id.
+      */
+      OrderViewModel.prototype.handleAmendmentForOrderApproval = function(pClonedOrderId) {
+        var self = this;
+        var clonedOrderId = pClonedOrderId;
+        var data = {};
+        var copiedOrderId = null;
+        //spinner.create(self.spinnerOptions);
+        data.orderId = clonedOrderId;
+        data.exclude ={
+            "commerceItem": ["priceInfo","externalPriceDetails","backOrderQuantity","preOrderQuantity"],
+            "order": ["approverMessages","approvalSystemMessages","dynamicPropertyMapString",
+                      "dynamicPropertyMapDouble","dynamicPropertyMapBigString","dynamicPropertyMapLong",
+                      "quoteInfo","approverIds","submittedDate","originOfOrder","createdByOrderId",
+                      "priceInfo","externalOrderPriceDetails","cancelReason"]
+        };
+        /**
+         * Handler for cancelOrder success. Calls getOrderDetails to fetch details
+         * of order after cancellation.
+         * 
+         * @param {Object}
+         *         pResult pResult object from ccRestClient.request.
+         */
+        var cancelOrderSuccess = function(pResult) {
+          var data = {};
+          data[ccConstants.INCLUDE_RESULT] = ccConstants.INCLUDE_RESULT_FULL;
+
+          ccRestClient.request(ccConstants.ENDPOINT_GET_ORDER, data, function(order) {
+            //Navigate to checkout page
+            self.user().orderId(copiedOrderId);
+            self.clearCloneOrderData();
+            self.paymentsViewModel().resetPaymentsContainer();
+            self.paymentsViewModel().totalAmountAuthorized(0);
+            self.paymentsViewModel().totalAmountAuthorizedOnVoid(0);
+            navigation.goTo(self.agentCheckoutLink);
+          },
+          function(data){
+            //spinner.destroy();
+            var errorMessage = CCi18n.t('ns.common:resources.fetchOrderDetailsFailedMessage');
+            notifier.sendError(ORDER_VIEW_MODEL_ID, errorMessage, true);
+          },
+          copiedOrderId);
+        };
+        /**
+         * Handler for copyOrder success.
+         * This method copied the cloned order to the original order in the following
+         * manner:
+         * 1) Removes the cloned order
+         * 2) Removes the original order
+         * 3) On success of removing the original order, this method invokes getOrder
+         *  for the newly created order id.
+         */
+        var handleCopyOrderSuccess = function(pData) {
+          var originalOrderId = "";
+          if(self.contextManager) {
+            originalOrderId = self.contextManager.getInstance().getProperty("originalOrderId");
+          }
+          var data2 = {};
+          copiedOrderId = pData.id;
+          ccRestClient.request(ccConstants.ENDPOINT_REMOVE_ORDER_AMENDMENT,
+              data2, function(pResult) {
+            var data = {};
+            data[ccConstants.OP] = ccConstants.CANCEL;
+            data[ccConstants.CANCEL_REASON] = "noLongerNeeded";
+            ccRestClient.request(ccConstants.ENDPOINT_HANDLE_ORDER_ACTIONS,
+                data, cancelOrderSuccess,
+                // Error Handler.
+                function(pResult) {
+              //spinner.destroy();
+              var errorMessage = CCi18n.t('ns.common:resources.cancelOrderErrorHeader');
+              notifier.sendError(ORDER_VIEW_MODEL_ID, errorMessage, true);
+            }, originalOrderId);
+          }, function(pResult) {
+            // spinner.destroy();
+            var errorMessage = CCi18n.t('ns.common:resources.copyOrderFailureMessage');
+            notifier.sendError(ORDER_VIEW_MODEL_ID, errorMessage, true);
+          }, self.user().clonedOrderId());
+        };
+        /**
+         * Handler for copyOrder Failure. 
+         */
+        var handleCopyOrderFailure = function(pResult) {
+          var orderError = CCi18n.t('ns.common:resources.copyOrderFailureMessage');
+          notifier.sendError(ORDER_VIEW_MODEL_ID, orderError, true);
+        };
+        ccRestClient.request(ccConstants.COPY_ORDER_OP,
+            data, handleCopyOrderSuccess,
+            handleCopyOrderFailure);
+      };
+
+      /*This method can be used to perform void payment operation along with reconcilation. 
+       * 1)Reconcile Order without payment
+       * 2)Void payments
+       * 3)submit order if required
+      * @function OrderViewModel#handleAmendmentWithVoidPayments
+      */
+      OrderViewModel.prototype.handleAmendmentWithVoidPayments = function() {
+        var self = this;
+        var data = self.buildOrderData();
+        var inputData = data();
+        inputData.payments = [];
+        inputData[ccConstants.OP] = ccConstants.PRE_AUTORIZE_ORDER_AMENDMENT_OP;
+        var id = self.id();
+        var failure = function(pResult){
+          notifier.sendError(ORDER_VIEW_MODEL_ID,  pResult.message, true);
+          navigation.goTo("/AgentOrderDetails" +'/'+ id);
+        };
+
+        var submitOrderAfterVoid = function(pData){
+          //populate payments
+          var pendingPayments = self.paymentsViewModel().pendingPayments();
+          self.isAnonymousCheckout = pData.profile.isAnonymous ? true : false;
+          //the below code was commented since in multiple cybersource payments after voiding payment in edit order,
+          // the payments endpoint call was not goign through due to validation failure.
+          //self.populatePaymentsViewModel(pData);
+          self.paymentsViewModel().pendingPayments(pendingPayments);
+
+          self.cart().currentOrderState(pData.state);
+          self.cart().currentOrderId(pData.id);
+          // submitOrder
+          self.createOrder();
+        };
+        
+        var loadGetOrderDetailsAfterVoidPayment = function(pData, pOrderId) {
+          //GET Order State
+          var orderId = pOrderId;
+          var voidPaymentResponse = pData;
+          var data = {};
+          data[ccConstants.INCLUDE_RESULT] = ccConstants.INCLUDE_RESULT_FULL;
+          var id = "";
+          var endpoint = ccConstants.ENDPOINT_GET_ORDER;
+          id = orderId;
+          ccRestClient.request(endpoint, data,
+              // success callback of Get order status call.
+              function(pData) {
+            self.clearCloneOrderData();
+            self.order(pData);
+            if(pData.state === ccConstants.SUBMITTED) {
+              navigation.goTo("/AgentOrderDetails" +'/'+pOrderId);
+            } else if(pData.state === ccConstants.ORDER_STATE_PENDING_PAYMENT) {
+              for (var index = 0 ; index &lt; voidPaymentResponse.paymentResponses.length ; index++) {
+                if(voidPaymentResponse.paymentResponses[index].paymentState != ccConstants.REMOVED) {
+                  self.cart().currentOrderState(pData.state);
+                  self.cart().currentOrderId(pData.id);
+                  self.clearCloneOrderData();
+                  self.handleRedirect();
+                  return;
+                }
+              }
+              self.paymentsViewModel().clearAuthorizedPayments();
+
+              // Clear void payments as everything is done.
+              if (self.paymentsViewModel().toBeVoidedPayments().length) {
+                self.paymentsViewModel().toBeVoidedPayments.removeAll();
+              }
+              // Authorize the payments by calling submit order.
+
+              submitOrderAfterVoid(pData);
+            }
+          },
+          //failure callback of Get order status call.
+          function(pData) {
+            notifier.sendError(ORDER_VIEW_MODEL_ID, pData.message, true);
+          }, id);
+        };
+        ccRestClient.request(ccConstants.ENDPOINT_AMEND_ORDER, inputData,
+            self.paymentsViewModel().voidPaymentsInAmendment.bind(self.paymentsViewModel(),id, loadGetOrderDetailsAfterVoidPayment, failure),
+            function(pData) {
+          var errorMessage = CCi18n.t('ns.common:resources.editOrderErrorHeader');
+          notifier.sendError(ORDER_VIEW_MODEL_ID, errorMessage, true);
+        }, self.cart().user().clonedOrderId());
+      };
+    });</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Index</a></h2><h3>Modules</h3><ul><li><a href="module-ccKoErrorWrapper.html">ccKoErrorWrapper</a></li><li><a href="module-ccKoExtensions.html">ccKoExtensions</a></li></ul><h3>Classes</h3><ul><li><a href="Address.html">Address</a></li><li><a href="CartViewModel.html">CartViewModel</a></li><li><a href="CCStoreConfiguration.html">CCStoreConfiguration</a></li><li><a href="CheckoutScheduledOrder.html">CheckoutScheduledOrder</a></li><li><a href="delegatedAdminContacts.html">delegatedAdminContacts</a></li><li><a href="DynamicProperty.html">DynamicProperty</a></li><li><a href="DynamicPropertyMetaContainer.html">DynamicPropertyMetaContainer</a></li><li><a href="EventDispatcher.html">EventDispatcher</a></li><li><a href="GiftCardViewModel.html">GiftCardViewModel</a></li><li><a href="GiftProductListingViewModel.html">GiftProductListingViewModel</a></li><li><a href="global.html#InfinityViewModel">InfinityViewModel</a></li><li><a href="IntegrationViewModel.html">IntegrationViewModel</a></li><li><a href="ko.bindingHandlers.background.html">background</a></li><li><a href="ko.bindingHandlers.carouselSwipe.html">carouselSwipe</a></li><li><a href="ko.bindingHandlers.ccDateTime.html">ccDateTime</a></li><li><a href="ko.bindingHandlers.ccForm.html">ccForm</a></li><li><a href="ko.bindingHandlers.ccLink.html">ccLink</a></li><li><a href="ko.bindingHandlers.ccValidation.html">ccValidation</a></li><li><a href="ko.bindingHandlers.checkbox.html">checkbox</a></li><li><a href="ko.bindingHandlers.chosen.html">chosen</a></li><li><a href="ko.bindingHandlers.contextResourcesNamespace.html">contextResourcesNamespace</a></li><li><a href="ko.bindingHandlers.currency.html">currency</a></li><li><a href="ko.bindingHandlers.datepicker.html">datepicker</a></li><li><a href="ko.bindingHandlers.datepopover.html">datepopover</a></li><li><a href="ko.bindingHandlers.draggable.html">draggable</a></li><li><a href="ko.bindingHandlers.droppable.html">droppable</a></li><li><a href="ko.bindingHandlers.fade.html">fade</a></li><li><a href="ko.bindingHandlers.hover.html">hover</a></li><li><a href="ko.bindingHandlers.image.html">image</a></li><li><a href="ko.bindingHandlers.imageSource.html">imageSource</a></li><li><a href="ko.bindingHandlers.imageZoom.html">imageZoom</a></li><li><a href="ko.bindingHandlers.localeText.html">localeText</a></li><li><a href="ko.bindingHandlers.makeAccess.html">makeAccess</a></li><li><a href="ko.bindingHandlers.modal.html">modal</a></li><li><a href="ko.bindingHandlers.modalTabbingContraint.html">modalTabbingContraint</a></li><li><a href="ko.bindingHandlers.onRender.html">onRender</a></li><li><a href="ko.bindingHandlers.popeditor.html">popeditor</a></li><li><a href="ko.bindingHandlers.popover.html">popover</a></li><li><a href="ko.bindingHandlers.productImageSource.html">productImageSource</a></li><li><a href="ko.bindingHandlers.productVariantImageSource.html">productVariantImageSource</a></li><li><a href="ko.bindingHandlers.propertyEditor.html">propertyEditor</a></li><li><a href="ko.bindingHandlers.radio.html">radio</a></li><li><a href="ko.bindingHandlers.richTextEditor.html">richTextEditor</a></li><li><a href="ko.bindingHandlers.scrollAffix.html">scrollAffix</a></li><li><a href="ko.bindingHandlers.select2.html">select2</a></li><li><a href="ko.bindingHandlers.select2Tags.html">select2Tags</a></li><li><a href="ko.bindingHandlers.selectable.html">selectable</a></li><li><a href="ko.bindingHandlers.slide.html">slide</a></li><li><a href="ko.bindingHandlers.slider.html">slider</a></li><li><a href="ko.bindingHandlers.spectrum.html">spectrum</a></li><li><a href="ko.bindingHandlers.textCheck.html">textCheck</a></li><li><a href="ko.bindingHandlers.timepicker.html">timepicker</a></li><li><a href="ko.bindingHandlers.triggerMessage.html">triggerMessage</a></li><li><a href="ko.bindingHandlers.validatableTarget.html">validatableTarget</a></li><li><a href="ko.bindingHandlers.validatableValue.html">validatableValue</a></li><li><a href="ko.bindingHandlers.widgetLocaleText.html">widgetLocaleText</a></li><li><a href="koValidation.alphaNumeric.html">alphaNumeric</a></li><li><a href="koValidation.alphaNumericNoSpaces.html">alphaNumericNoSpaces</a></li><li><a href="koValidation.alphaNumericNoSpacesNoDashesWithSeperators.html">alphaNumericNoSpacesNoDashesWithSeperators</a></li><li><a href="koValidation.alphaNumericNoSpacesWithSeperators.html">alphaNumericNoSpacesWithSeperators</a></li><li><a href="koValidation.alphaNumericWithSeperators.html">alphaNumericWithSeperators</a></li><li><a href="koValidation.bool.html">bool</a></li><li><a href="koValidation.creditcard.html">creditcard</a></li><li><a href="koValidation.cvv.html">cvv</a></li><li><a href="koValidation.endmonth.html">endmonth</a></li><li><a href="koValidation.endyear.html">endyear</a></li><li><a href="koValidation.importFileName.html">importFileName</a></li><li><a href="koValidation.laterDate.html">laterDate</a></li><li><a href="koValidation.match.html">match</a></li><li><a href="koValidation.mediaZipFileName.html">mediaZipFileName</a></li><li><a href="koValidation.number.html">number</a></li><li><a href="koValidation.observablePattern.html">observablePattern</a></li><li><a href="koValidation.password.html">password</a></li><li><a href="koValidation.price.html">price</a></li><li><a href="koValidation.propertyIdAlreadyInUse.html">propertyIdAlreadyInUse</a></li><li><a href="koValidation.propertyNameAlreadyInUse.html">propertyNameAlreadyInUse</a></li><li><a href="koValidation.restrictSlashCharacters.html">restrictSlashCharacters</a></li><li><a href="koValidation.startmonth.html">startmonth</a></li><li><a href="koValidation.startyear.html">startyear</a></li><li><a href="koValidation.uniqueTrimmed.html">uniqueTrimmed</a></li><li><a href="koValidation.uniqueTrimmedCaseInsensitive.html">uniqueTrimmedCaseInsensitive</a></li><li><a href="koValidation.url.html">url</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.addTemplate.html">addTemplate</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.agentBar.html">agentBar</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.ccDate.html">ccDate</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.ccNumber.html">ccNumber</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.ccResizeImage.html">ccResizeImage</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.disabled.html">disabled</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.element.html">element</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.embeddedAssistance.html">embeddedAssistance</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.fireChange.html">fireChange</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.inTabFlow.html">inTabFlow</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.noIndexMeta.html">noIndexMeta</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.previewBar.html">previewBar</a></li><li><a href="module-ccKoExtensions-ko.bindingHandlers.setContextVariable.html">setContextVariable</a></li><li><a href="multiCartViewModel.html">multiCartViewModel</a></li><li><a href="NavStateViewModel.html">NavStateViewModel</a></li><li><a href="OrderDetailsViewModel.html">OrderDetailsViewModel</a></li><li><a href="OrderHistoryViewModel.html">OrderHistoryViewModel</a></li><li><a href="OrdersPendingApprovalViewModel.html">OrdersPendingApprovalViewModel</a></li><li><a href="OrderViewModel.html">OrderViewModel</a></li><li><a href="Organization.html">Organization</a></li><li><a href="ParentOrganisation.html">ParentOrganisation</a></li><li><a href="ProductListingSearchViewModel.html">ProductListingSearchViewModel</a></li><li><a href="ProductListingViewModel.html">ProductListingViewModel</a></li><li><a href="ProductTypes.html">ProductTypes</a></li><li><a href="ProductViewModel.html">ProductViewModel</a></li><li><a href="PromotionUpsellContainer.html">PromotionUpsellContainer</a></li><li><a href="PubSub.topicNames.html">topicNames</a></li><li><a href="PurchaseListListingViewModel.html">PurchaseListListingViewModel</a></li><li><a href="PurchaseListViewModel.html">PurchaseListViewModel</a></li><li><a href="RegistrationRequestSearchViewModel.html">RegistrationRequestSearchViewModel</a></li><li><a href="resetCVV.html">resetCVV</a></li><li><a href="resetGiftCardPin.html">resetGiftCardPin</a></li><li><a href="resetPaymentDetails.html">resetPaymentDetails</a></li><li><a href="ReturnItem.html">ReturnItem</a></li><li><a href="ReturnViewModel.html">ReturnViewModel</a></li><li><a href="scheduledOrderList.html">scheduledOrderList</a></li><li><a href="SearchRestClient.html">SearchRestClient</a></li><li><a href="ServerData.html">ServerData</a></li><li><a href="UserViewModel.html">UserViewModel</a></li><li><a href="WidgetViewModel.html">WidgetViewModel</a></li><li><a href="WishlistContentViewModel.html">WishlistContentViewModel</a></li></ul><h3>Namespaces</h3><ul><li><a href="ko.bindingHandlers.html">bindingHandlers</a></li><li><a href="ko.extenders.html">extenders</a></li><li><a href="koValidation.html">koValidation</a></li></ul><h3>Global</h3><ul><li><a href="global.html#addItemToPurchaseList">addItemToPurchaseList</a></li><li><a href="global.html#callWidgetMethodIfApplicable">callWidgetMethodIfApplicable</a></li><li><a href="global.html#CartViewModel#deleteParticularIncompleteOrdersDeletesanincompleteorderbyorderId">CartViewModel#deleteParticularIncompleteOrdersDeletes an incomplete order by orderId</a></li><li><a href="global.html#CCEETagProcessor">CCEETagProcessor</a></li><li><a href="global.html#doesSiteExist">doesSiteExist</a></li><li><a href="global.html#fetchSkuDetailsListError">fetchSkuDetailsListError</a></li><li><a href="global.html#fetchSkuDetailsListSuccess">fetchSkuDetailsListSuccess</a></li><li><a href="global.html#formatSiteText">formatSiteText</a></li><li><a href="global.html#handleInitiateEditSuccess">handleInitiateEditSuccess</a></li><li><a href="global.html#isModified">isModified</a></li><li><a href="global.html#isValidDeterminewhetherornotthepaymentdetailsobjectisvalidbasedonthevalidityofitscomponentparts.Thiswillnotcauseerrormessagestobedisplayedforanyobservablevaluesthatareunchangedandhaveneverreceivedfocusontherelatedformfield(s).">isValidDetermine whether or not the payment details object is validbased on the validity of its component parts. This will notcause error messages to be displayed for any observable valuesthat are unchanged and have never received focus on the related form field(s).</a></li><li><a href="global.html#justFocused">justFocused</a></li><li><a href="global.html#mapProperties">mapProperties</a></li><li><a href="global.html#MENU_CLOSE_TIMEOUT">MENU_CLOSE_TIMEOUT</a></li><li><a href="global.html#populateData">populateData</a></li><li><a href="global.html#populateProductData">populateProductData</a></li><li><a href="global.html#reset">reset</a></li><li><a href="global.html#resetModified">resetModified</a></li><li><a href="global.html#Resetsstylingforthelazilyloadedimage">Resets styling for the lazily loaded image</a></li><li><a href="global.html#Setsupstylingfortheimagetobelazilyloaded">Sets up styling for the image to be lazily loaded</a></li><li><a href="global.html#ShopperContextViewModel">ShopperContextViewModel</a></li><li><a href="global.html#thelistofpropertiestoignorewhilecopyingdynamicpropertiestoaddressobject">the list of properties to ignore while copying dynamic properties to address object</a></li><li><a href="global.html#validatePaymentDetailsForceallrelevantmemberobservablestoperformtheirvalidationnow&displaytheerrors(ifany)">validatePaymentDetailsForce all relevant member observables to perform theirvalidation now & display the errors (if any)</a></li><li><a href="global.html#WidgetQueue">WidgetQueue</a></li></ul>
+</nav>
+
+<br clear="both">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.0</a> on Wed Feb 26 2020 18:22:24 GMT+0530 (IST)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
